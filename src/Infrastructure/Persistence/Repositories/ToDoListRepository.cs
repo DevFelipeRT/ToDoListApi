@@ -42,6 +42,7 @@ namespace Infrastructure.Persistence.Repositories
             // Read-only query: AsNoTracking is appropriate here.
             return await _context.ToDoLists
                 .AsNoTracking()
+                .Include(l => l.ItemsForEfCore)
                 .Where(x => x.UserId == userId)
                 .ToListAsync(cancellationToken);
         }
@@ -51,6 +52,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             // Tracking query (useful when the caller intends to modify the entity).
             return await _context.ToDoLists
+                .Include(l => l.ItemsForEfCore)
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }
 
