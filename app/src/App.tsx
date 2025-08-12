@@ -15,7 +15,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const API_URL = 'http://localhost:5191/api';
+  const API_URL = '/api';
 
   useEffect(() => {
     fetchTodos();
