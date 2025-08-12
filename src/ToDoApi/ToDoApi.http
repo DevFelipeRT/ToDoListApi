@@ -1,6 +1,14 @@
-@ToDoApi_HostAddress = http://localhost:5191
+# NGINX
+@ApiHost = http://localhost
 
-GET {{ToDoApi_HostAddress}}/weatherforecast/
+# --- ToDoItems Endpoints ---
+
+### Get all ToDo items
+GET {{ApiHost}}/api/ToDoItems/
+Accept: application/json
+
+### Get a single ToDo item by ID (change the ID as needed)
+GET {{ApiHost}}/api/ToDoItems/1
 Accept: application/json
 
 ###
