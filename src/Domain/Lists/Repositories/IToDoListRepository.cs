@@ -70,14 +70,14 @@ public interface IToDoListRepository
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Retrieves to-do items with due dates within a specified date range for a user.
+    /// Returns all to‑do items with a due date for a given user, along with the identifier of the list to which each item belongs.
     /// </summary>
-    /// <param name="userId">The unique identifier of the user.</param>
-    /// <param name="fromDate">Optional start date to filter due dates (inclusive).</param>
-    /// <param name="toDate">Optional end date to filter due dates (inclusive).</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A collection of to-do items with due dates in the specified range.</returns>
-    Task<IReadOnlyCollection<ToDoItem>> GetItemsWithDueDateAsync(
+    /// <param name="userId">Unique identifier of the user whose items are being retrieved.</param>
+    /// <param name="fromDate">Optional start date used to filter due dates (inclusive).</param>
+    /// <param name="toDate">Optional end date used to filter due dates (inclusive).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A read‑only collection of tuples where Item is the to‑do item and ListId identifies its parent list.</returns>
+    Task<IReadOnlyCollection<(ToDoItem Item, ToDoListId ListId)>> GetItemsWithDueDateAndListIdAsync(
         AccountId userId,
         DateTime? fromDate,
         DateTime? toDate,

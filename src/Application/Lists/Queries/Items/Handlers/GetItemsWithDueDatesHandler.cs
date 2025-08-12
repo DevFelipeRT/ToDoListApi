@@ -31,9 +31,8 @@ public sealed class GetItemsWithDueDatesHandler : IRequestHandler<GetItemsWithDu
         // Convert primitive data to Value Objects
         var userId = AccountId.FromGuid(request.UserId);
 
-        var items = await _toDoListRepository.GetItemsWithDueDateAsync(
-            userId, request.FromDate, request.ToDate, cancellationToken);
+        var tuples = await _toDoListRepository.GetItemsWithDueDateAndListIdAsync( userId, request.FromDate, request.ToDate, cancellationToken);
 
-        return items.Select(ToDoItemDto.FromDomain);
+        return tuples.Select(t => ToDoItemDto.FromDomain(t.Item, t.ListId));
     }
 }
