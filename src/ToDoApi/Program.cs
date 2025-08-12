@@ -4,7 +4,6 @@ using System.Text;
 using Application;
 using Application.Accounts.Services;
 using Application.Accounts.Services.Interfaces;
-using Application.Common.Interfaces;
 using Infrastructure;
 using Infrastructure.Persistence;
 using ToDoApi.Identity.Services;
@@ -12,9 +11,18 @@ using ToDoApi.Identity.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// JWT Configuration
+// Read JWT configuration from appsettings.json
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
+// Register authentication and token services
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+// Register Application and Infrastructure layers
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// Configure JWT authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -22,30 +30,28 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtSettings = builder.Configuration.GetSection("Jwt");
+    var jwtSection = builder.Configuration.GetSection("Jwt");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
+        ValidIssuer = jwtSection["Issuer"],
+        ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] 
+            Encoding.UTF8.GetBytes(jwtSection["SecretKey"]
                 ?? throw new InvalidOperationException("JWT SecretKey not found")))
     };
 });
 
-// Application and Infrastructure Layers
-builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+// Authorisation
+builder.Services.AddAuthorization();
 
-// MVC Controllers
+// Controllers
 builder.Services.AddControllers();
 
-// CORS Policy for React App
+// CORS Policy to allow the React application
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
@@ -55,12 +61,11 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod());
 });
 
-// Swagger with JWT Bearer Authentication
+// Configure Swagger with Bearer scheme
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "ToDoApi", Version = "v1" });
-
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -68,7 +73,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter 'Bearer' [space] and then your valid JWT token below.\r\n\r\nExample: \"Bearer eyJhbGci...\"",
+        Description = "Enter 'Bearer' [space] followed by your JWT token.\r\nExample: \"Bearer eyJhbGci...\""
     });
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
@@ -88,7 +93,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// HTTP Request Pipeline
+// // Seed the database at startup (useful during development)
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+//     await ApplicationDbContextSeed.SeedAsync(context);
+// }
+
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -97,12 +109,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowReactApp");
-
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
