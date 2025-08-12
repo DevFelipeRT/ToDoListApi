@@ -324,7 +324,7 @@ public sealed class ItemsController : ApiControllerBase
     /// <param name="id">The unique identifier of the item.</param>
     /// <param name="request">The request containing the due date date.</param>
     /// <returns>No content if successful.</returns>
-    [HttpPut("{id:guid}/due date")]
+    [HttpPut("{id:guid}/due-date")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
