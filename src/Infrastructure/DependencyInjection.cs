@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ToDoList.Application.Common.Interfaces;
-using ToDoList.Infrastructure.Persistence;
-using ToDoList.Infrastructure.Persistence.Repositories;
+using Application.Common.Interfaces;
+using Infrastructure.Persistence;
+using Infrastructure.Persistence.Repositories;
+using Domain.Lists.Repositories;
+using Domain.Accounts.Repositories;
 
-namespace ToDoList.Infrastructure;
+namespace Infrastructure;
 
 /// <summary>
 /// Provides extension methods for service registration in the Infrastructure layer.
@@ -21,10 +23,13 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("DefaultConnection"),
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
                 builder => builder.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-        services.AddScoped<IToDoItemRepository, ToDoItemRepository>();
+        services.AddScoped<IDatabaseSeeder, ApplicationDbContextSeed>();
+
+        services.AddScoped<IToDoListRepository, ToDoListRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }
