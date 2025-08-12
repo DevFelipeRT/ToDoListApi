@@ -1,7 +1,14 @@
 using System.Reflection;
+using Application.Accounts.Services;
+using Application.Accounts.Services.Interfaces;
+using Application.Lists.Services;
+using Domain.Accounts.Services;
+using Domain.Accounts.Services.Interfaces;
+using Domain.Lists.Services;
+using Domain.Lists.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ToDoList.Application;
+namespace Application;
 
 /// <summary>
 /// Provides extension methods for service registration in the Application layer.
@@ -17,7 +24,20 @@ public static class DependencyInjection
     {
         services.AddMediatR(cfg => 
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-        
+
+        // Dependency injection for domain services
+        services.AddScoped<IAccountLockoutPolicy, AccountLockoutPolicy>();
+        services.AddScoped<IAccountUniquenessChecker, AccountUniquenessChecker>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IPasswordPolicyValidator, PasswordPolicyValidator>();
+        services.AddScoped<IReminderSchedulerService, ReminderSchedulerService>();
+        services.AddScoped<IToDoListItemTransferService, ToDoListItemTransferService>();
+        services.AddScoped<IToDoListTitleUniquenessChecker, ToDoListTitleUniquenessChecker>();
+        services.AddScoped<IAuthorizationService, AuthorizationService>();
+
+        // Dependency injection for application services
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
+
         return services;
     }
 }

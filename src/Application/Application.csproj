@@ -11,7 +11,7 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>ToDoList.Application</RootNamespace>
+    <RootNamespace>Application</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
