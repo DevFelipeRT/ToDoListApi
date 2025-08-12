@@ -66,7 +66,7 @@ public sealed class ToDoItemConfiguration : IEntityTypeConfiguration<ToDoItem>
             .IsRequired();
 
         builder.HasOne<ToDoList>()           // principal side (ToDoList)
-            .WithMany()                      // a list has many items
+            .WithMany("ItemsForEfCore")      // a list has many items
             .HasForeignKey("ListId")         // FK column on ToDoItems
             .OnDelete(DeleteBehavior.Cascade);
 

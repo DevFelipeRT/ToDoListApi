@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Accounts;
 using Domain.Accounts.ValueObjects;
@@ -72,5 +73,11 @@ public sealed class ToDoListConfiguration : IEntityTypeConfiguration<ToDoList>
         builder.HasIndex(l => l.UserId);
         builder.HasIndex(l => l.IsCompleted);
         builder.HasIndex(l => l.CreatedAt);
+
+        var navigation = builder.Metadata.FindNavigation("ItemsForEfCore");
+        if (navigation != null)
+        {
+            navigation.SetPropertyAccessMode(PropertyAccessMode.Property);
+        }
     }
 }
