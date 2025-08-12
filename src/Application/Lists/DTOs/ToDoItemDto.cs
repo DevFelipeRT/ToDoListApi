@@ -1,4 +1,6 @@
 using System;
+using Domain.Lists;
+using Domain.Lists.ValueObjects;
 
 namespace Application.Lists.DTOs;
 
@@ -30,7 +32,7 @@ public sealed class ToDoItemDto
     /// <summary>
     /// Gets or sets the due date of the To-Do item, if any.
     /// </summary>
-    public DateTime? DueDate { get; init; } 
+    public DateTime? DueDate { get; init; }
 
     /// <summary>
     /// Gets or sets the completion timestamp of the To-Do item, if any.
@@ -52,7 +54,7 @@ public sealed class ToDoItemDto
     /// </summary>
     /// <param name="item">The domain ToDoItem entity.</param>
     /// <returns>A mapped <see cref="ToDoItemDto"/> instance.</returns>
-    public static ToDoItemDto FromDomain(Domain.Lists.ToDoItem item)
+    public static ToDoItemDto FromDomain(ToDoItem item)
     {
         return new ToDoItemDto
         {
@@ -64,4 +66,25 @@ public sealed class ToDoItemDto
             CompletedAt = item.CompletedAt,
         };
     }
+    
+    /// <summary>
+    /// Creates a new <see cref="ToDoItemDto"/> from the specified domain entity.
+    /// </summary>
+    /// <param name="item">The domain ToDoItem entity.</param>
+    /// <param name="listId">The unique identifier of the list to which the item belongs.</param>
+    /// <returns>A mapped <see cref="ToDoItemDto"/> instance.</returns>
+    public static ToDoItemDto FromDomain(ToDoItem item, ToDoListId listId)
+    {
+        return new ToDoItemDto
+        {
+            Id = item.Id.Value,
+            Title = item.Title.Value,
+            IsCompleted = item.IsCompleted,
+            CreatedAt = item.CreatedAt,
+            DueDate = item.DueDate?.Value,
+            CompletedAt = item.CompletedAt,
+            ListId = listId.Value
+        };
+    }
+
 }

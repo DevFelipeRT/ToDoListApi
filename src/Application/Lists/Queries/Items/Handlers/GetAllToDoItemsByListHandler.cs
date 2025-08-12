@@ -41,7 +41,7 @@ public sealed class GetAllToDoItemsByListHandler : IRequestHandler<GetAllToDoIte
         var items = await _toDoListRepository.GetAllItemsByListIdAndUserAsync(listId, userId, cancellationToken);
         
         return items
-            .Select(ToDoItemDto.FromDomain)
+            .Select(item => ToDoItemDto.FromDomain(item, listId))
             .ToArray();
     }
 }

@@ -41,6 +41,6 @@ public sealed class GetToDoItemByIdHandler : IRequestHandler<GetToDoItemByIdQuer
         if (item is null)
             return null;
 
-        return ToDoItemDto.FromDomain(item);
+        return ToDoItemDto.FromDomain(item, listId);
     }
 }
