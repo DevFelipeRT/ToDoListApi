@@ -28,7 +28,7 @@ public sealed class MarkToDoListAsIncompleteHandler : IRequestHandler<MarkToDoLi
     public async Task<bool> Handle(MarkToDoListAsIncompleteCommand request, CancellationToken cancellationToken)
     {
         // Convert raw IDs to value objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var listId = new ToDoListId(request.ListId);
 
         await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);

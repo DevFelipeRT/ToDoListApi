@@ -28,7 +28,7 @@ public sealed class UpdateToDoListDescriptionHandler : IRequestHandler<UpdateToD
     public async Task<bool> Handle(UpdateToDoListDescriptionCommand request, CancellationToken cancellationToken)
     {
         // Convert raw IDs to value objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var listId = new ToDoListId(request.ListId);
         var newDescription = request.NewDescription != null ? new Description(request.NewDescription) : null;
 

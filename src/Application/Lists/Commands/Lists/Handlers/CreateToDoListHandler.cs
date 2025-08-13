@@ -31,7 +31,7 @@ public sealed class CreateToDoListHandler : IRequestHandler<CreateToDoListComman
     public async Task<Guid> Handle(CreateToDoListCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var title = new Title(request.Title);
         var description = request.Description != null ? new Description(request.Description) : null;
 

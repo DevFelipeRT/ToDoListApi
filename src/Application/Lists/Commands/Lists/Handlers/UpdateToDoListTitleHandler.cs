@@ -30,7 +30,7 @@ public sealed class UpdateToDoListTitleHandler : IRequestHandler<UpdateToDoListT
     public async Task<bool> Handle(UpdateToDoListTitleCommand request, CancellationToken cancellationToken)
     {
         // Convert raw IDs to value objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var listId = new ToDoListId(request.ListId);
         var newTitle = new Title(request.NewTitle);
 
