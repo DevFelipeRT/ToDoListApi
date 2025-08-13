@@ -5,6 +5,10 @@ using ToDoApi.Identity.Contracts.Responses;
 using Application.Accounts.Commands.Users;
 using Application.Accounts.Services.Interfaces;
 using System;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.Identity.Client;
+using Domain.Accounts;
+using Domain.Accounts.ValueObjects;
 
 namespace ToDoApi.Identity.Controllers;
 
@@ -34,22 +38,46 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Authenticates the user and returns a JWT token if credentials are valid.
-    /// All failure cases (invalid credentials, inactive account, lockout) result in HTTP 401.
     /// </summary>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request?.Email) || string.IsNullOrWhiteSpace(request?.Password))
-            return Unauthorized(new { message = "Invalid credentials." });
+        if (string.IsNullOrWhiteSpace(request?.Email) ||
+            string.IsNullOrWhiteSpace(request?.Password))
+        {
+            return BadRequest(new { message = "All fields are required." });
+        }
 
-        var emailVo = new Domain.Accounts.ValueObjects.AccountEmail(request.Email);
+        AccountEmail emailVo;
+        User user;
 
-        var user = await _authenticationService.AuthenticateAsync(emailVo, request.Password, cancellationToken);
+        try
+        {
+            emailVo = new AccountEmail(request.Email);
+        }
+        catch (Exception)
+        {
+            return Unauthorized(new { message = "Invalid email." });
+        }
 
-        if (user is null)
-            return Unauthorized(new { message = "Invalid credentials." });
+        try
+        {
+            var result = await _authenticationService.AuthenticateAsync(emailVo, request.Password, cancellationToken);
+
+            if (result == null)
+            {
+                return Unauthorized(new { message = "Invalid password." });
+            }
+
+            user = result;
+        }
+        catch (Exception)
+        {
+            return Unauthorized(new { message = "Unregistered account." });
+        }
 
         var token = _jwtTokenService.GenerateToken(user.Id.Value, user.Username.Value);
 
@@ -70,6 +98,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("register")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -81,24 +110,23 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "All fields are required." });
         }
 
-        var userId = Guid.NewGuid();
-
         var command = new CreateUserCommand(
-            userId,
             request.Email,
             request.Username,
             request.Name,
             request.Password
         );
 
+        Guid userId;
+
         try
         {
-            await _mediator.Send(command, cancellationToken);
+            userId = await _mediator.Send(command, cancellationToken);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
             // Handler throws InvalidOperationException for business rule violations
-            return BadRequest(new { message = ex.Message });
+            return UnprocessableEntity(new { message = ex.Message });
         }
 
         var token = _jwtTokenService.GenerateToken(userId, request.Username);
