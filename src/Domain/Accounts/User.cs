@@ -34,6 +34,22 @@ public class User : Account
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="User"/> class.
+    /// </summary>
+    /// <param name="email">The validated user email address.</param>
+    /// <param name="username">The validated username.</param>
+    /// <param name="name">The validated display name.</param>
+    /// <param name="passwordHash">The password hash (never plaintext).</param>
+    /// <param name="isActive">Indicates whether the user account is active.</param>
+    public User(
+        AccountEmail email,
+        AccountUsername username,
+        AccountName name,
+        string passwordHash,
+        bool isActive = false)
+        : this(AccountId.New(), email, username, name, passwordHash, isActive) {}
+
+    /// <summary>
     /// Deactivates the user account.
     /// </summary>
     public void Deactivate()
