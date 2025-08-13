@@ -23,7 +23,7 @@ public sealed class UpdateUserNameHandler : IRequestHandler<UpdateUserNameComman
     public async Task Handle(UpdateUserNameCommand command, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(command.UserId);
+        var userId = AccountId.FromGuid(command.UserId);
         var newName = new AccountName(command.NewName);
 
         var user = RetrieveUser(userId, cancellationToken);

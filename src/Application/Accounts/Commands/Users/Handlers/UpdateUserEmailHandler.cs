@@ -28,7 +28,7 @@ public sealed class UpdateUserEmailHandler : IRequestHandler<UpdateUserEmailComm
     public async Task Handle(UpdateUserEmailCommand command, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(command.UserId);
+        var userId = AccountId.FromGuid(command.UserId);
         var newEmail = new AccountEmail(command.NewEmail);
 
         var user = RetrieveUser(userId, cancellationToken);

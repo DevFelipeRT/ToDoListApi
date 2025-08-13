@@ -23,7 +23,7 @@ public sealed class DeactivateUserHandler : IRequestHandler<DeactivateUserComman
     public async Task Handle(DeactivateUserCommand command, CancellationToken cancellationToken)
     {
         // Convert primitive to Value Object
-        var userId = new AccountId(command.UserId);
+        var userId = AccountId.FromGuid(command.UserId);
 
         var user = RetrieveUser(userId, cancellationToken);
 
