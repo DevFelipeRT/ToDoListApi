@@ -9,7 +9,7 @@ public sealed class AccountId : IEquatable<AccountId>
 {
     public Guid Value { get; }
 
-    public AccountId(Guid value)
+    private AccountId(Guid value)
     {
         if (value == Guid.Empty)
             throw new ArgumentException("AccountId cannot be empty.", nameof(value));
