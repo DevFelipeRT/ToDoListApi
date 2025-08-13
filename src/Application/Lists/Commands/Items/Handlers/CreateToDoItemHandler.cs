@@ -30,7 +30,7 @@ public sealed class CreateToDoItemHandler : IRequestHandler<CreateToDoItemComman
     public async Task<Guid> Handle(CreateToDoItemCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var listId = new ToDoListId(request.ListId);
         var title = new Title(request.Title);
         var dueDate = request.DueDate.HasValue ? new DueDate(request.DueDate.Value) : null;

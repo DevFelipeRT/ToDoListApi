@@ -37,7 +37,7 @@ public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
     public async Task Handle(TransferItemCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var sourceListId = new ToDoListId(request.SourceListId);
         var targetListId = new ToDoListId(request.TargetListId);
         var itemId = new ToDoItemId(request.ItemId);

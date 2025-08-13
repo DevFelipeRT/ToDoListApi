@@ -29,7 +29,7 @@ public sealed class GetUserByIdHandler
     public async Task<UserDto?> Handle(GetUserByIdQuery query, CancellationToken cancellationToken)
     {
         // Convert primitive to Value Object
-        var userId = new AccountId(query.UserId);
+        var userId = AccountId.FromGuid(query.UserId);
 
         var user = await RetrieveUser(userId, cancellationToken);
 

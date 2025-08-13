@@ -30,7 +30,7 @@ public sealed class MarkAsCompletedHandler : IRequestHandler<MarkAsCompletedComm
     public async Task<bool> Handle(MarkAsCompletedCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var listId = new ToDoListId(request.ListId);
         var itemId = new ToDoItemId(request.ItemId);
 

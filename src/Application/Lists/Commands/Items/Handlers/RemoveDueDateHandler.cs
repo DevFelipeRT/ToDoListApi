@@ -28,7 +28,7 @@ public sealed class RemoveDueDateHandler : IRequestHandler<RemoveDueDateCommand>
         // Convert primitives to Value Objects
         var listId = new ToDoListId(request.ListId);
         var itemId = new ToDoItemId(request.ItemId);
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
 
         await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
 

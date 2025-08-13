@@ -31,7 +31,7 @@ public sealed class SetDueDateHandler : IRequestHandler<SetDueDateCommand>
         // Convert primitives to Value Objects (assuming UserId is added to command)
         var listId = new ToDoListId(request.ListId);
         var itemId = new ToDoItemId(request.ItemId);
-        var userId = new AccountId(request.UserId);
+        var userId = AccountId.FromGuid(request.UserId);
         var dueDate = new DueDate(request.DueDate);
 
         await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
