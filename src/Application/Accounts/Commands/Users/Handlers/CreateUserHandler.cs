@@ -13,7 +13,7 @@ namespace Application.Accounts.Commands.Users.Handlers;
 /// Handler responsible for creating a new user account.
 /// Contains the application logic for user registration including validation and persistence.
 /// </summary>
-public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand>
+public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
 {
     private readonly IUserRepository _userRepository;
     private readonly IAccountUniquenessChecker _uniquenessChecker;
@@ -32,10 +32,9 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand>
         _passwordPolicyValidator = passwordPolicyValidator;
     }
 
-    public async Task Handle(CreateUserCommand command, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateUserCommand command, CancellationToken cancellationToken)
     {
         // Convert primitive data to Value Objects
-        var userId = new AccountId(command.UserId);
         var email = new AccountEmail(command.Email);
         var username = new AccountUsername(command.Username);
         var name = new AccountName(command.Name);
@@ -45,11 +44,13 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand>
         ValidatePasswordPolicy(command.PlainPassword);
 
         var passwordHash = GeneratePasswordHash(command.PlainPassword);
-        
-        var user = CreateUserInstance(userId, email, username, name, passwordHash);
+
+        var user = CreateUserInstance(email, username, name, passwordHash);
 
         // Persist user
         await _userRepository.AddAsync(user, cancellationToken);
+
+        return user.Id.Value;
     }
 
     private async Task ValidateUniqueness(AccountEmail email, AccountUsername username, CancellationToken cancellationToken)
@@ -73,12 +74,11 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand>
     }
     
     private User CreateUserInstance(
-        AccountId userId,
         AccountEmail email,
         AccountUsername username,
         AccountName name,
         string passwordHash)
     {
-        return new User(userId, email, username, name, passwordHash);
+        return new User(email, username, name, passwordHash);
     }
 }
