@@ -30,6 +30,14 @@ public interface IToDoListRepository
     Task<IReadOnlyCollection<ToDoList>> GetAllByUserAsync(AccountId userId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Retrieves the unique identifiers of all ToDoList aggregates for the specified user.
+    /// </summary>
+    /// <param name="userId">The identifier of the user whose list IDs to retrieve.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that returns a collection of ToDoListId values for the user.</returns>
+    Task<IReadOnlyList<ToDoListId>> GetIdsByUserAsync(AccountId userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Retrieves a ToDoList aggregate by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the ToDoList.</param>
@@ -64,21 +72,21 @@ public interface IToDoListRepository
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The to-do item if found and owned by the user; otherwise, null.</returns>
     Task<ToDoItem?> GetItemByIdAsync(
-        ToDoListId listId, 
-        ToDoItemId itemId, 
+        ToDoListId listId,
+        ToDoItemId itemId,
         AccountId userId,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Returns all to‑do items with a due date for a given user, along with the identifier of the list to which each item belongs.
+    /// Retrieves all to-do items with due dates for a collection of list IDs.
     /// </summary>
-    /// <param name="userId">Unique identifier of the user whose items are being retrieved.</param>
-    /// <param name="fromDate">Optional start date used to filter due dates (inclusive).</param>
-    /// <param name="toDate">Optional end date used to filter due dates (inclusive).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A read‑only collection of tuples where Item is the to‑do item and ListId identifies its parent list.</returns>
-    Task<IReadOnlyCollection<(ToDoItem Item, ToDoListId ListId)>> GetItemsWithDueDateAndListIdAsync(
-        AccountId userId,
+    /// <param name="listIds">The unique identifiers of the to-do lists.</param>
+    /// <param name="fromDate">Optional start date to filter due dates (inclusive).</param>
+    /// <param name="toDate">Optional end date to filter due dates (inclusive).</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that returns a collection of tuples where Item is the to-do item and ListId identifies its parent list.</returns>
+    Task<IReadOnlyCollection<(ToDoItem Item, ToDoListId ListId)>> GetItemsWithDueDateByListIdsAsync(
+        IReadOnlyCollection<ToDoListId> listIds,
         DateTime? fromDate,
         DateTime? toDate,
         CancellationToken cancellationToken);

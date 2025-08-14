@@ -12,59 +12,84 @@ using Domain.Accounts.ValueObjects;
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Repository implementation for the <see cref="ToDoList"/> aggregate using Entity Framework Core.
-/// Encapsulates data-access concerns to keep the domain model persistence-ignorant.
+/// Entity Framework Core repository for the <see cref="ToDoList"/> aggregate.
+/// Encapsulates data access to keep the domain model persistence-ignorant.
 /// </summary>
 public sealed class ToDoListRepository : IToDoListRepository
 {
     private readonly ApplicationDbContext _context;
 
+    /// <summary>
+    /// Helper transport type returning a domain item together with its owning list id.
+    /// </summary>
     public readonly record struct ItemWithListId(ToDoItem Item, ToDoListId ListId);
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ToDoListRepository"/>.
+    /// Initializes a new <see cref="ToDoListRepository"/>.
     /// </summary>
-    /// <param name="context">The EF Core database context.</param>
+    /// <param name="context">EF Core database context.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null.</exception>
     public ToDoListRepository(ApplicationDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Persists a new <see cref="ToDoList"/> aggregate.
+    /// </summary>
     public async Task AddAsync(ToDoList list, CancellationToken cancellationToken)
     {
         await _context.ToDoLists.AddAsync(list, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    /// <inheritdoc />
-    public async Task<IReadOnlyCollection<ToDoList>> GetAllByUserAsync(AccountId userId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Retrieves all lists owned by the given user (read-only).
+    /// Includes the EF-only backing collection for items.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ToDoList>> GetAllByUserAsync(
+        AccountId userId,
+        CancellationToken cancellationToken)
     {
-        // Read-only query: AsNoTracking is appropriate here.
         return await _context.ToDoLists
             .AsNoTracking()
             .Include(l => l.ItemsForEfCore)
-            .Where(x => x.UserId == userId)
+            .Where(l => l.UserId == userId)
             .ToListAsync(cancellationToken);
     }
 
-    /// <inheritdoc />
-    public async Task<ToDoList?> GetByIdAsync(ToDoListId id, CancellationToken cancellationToken)
+    /// <summary>
+    /// Retrieves only the identifiers of lists owned by the given user (read-only).
+    /// </summary>
+    public async Task<IReadOnlyList<ToDoListId>> GetIdsByUserAsync(
+        AccountId userId,
+        CancellationToken cancellationToken)
     {
-        // Tracking query (useful when the caller intends to modify the entity).
         return await _context.ToDoLists
-            .Include(l => l.ItemsForEfCore)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .AsNoTracking()
+            .Where(l => l.UserId == userId)
+            .Select(l => l.Id)
+            .ToListAsync(cancellationToken);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Loads a list aggregate by its identifier, including its EF backing items collection (tracked).
+    /// </summary>
+    public async Task<ToDoList?> GetByIdAsync(ToDoListId id, CancellationToken cancellationToken)
+    {
+        return await _context.ToDoLists
+            .Include(l => l.ItemsForEfCore)
+            .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Updates an existing list aggregate (tracked) or adds it when not found.
+    /// </summary>
     public async Task UpdateAsync(ToDoList list, CancellationToken cancellationToken)
     {
-        // Load the existing aggregate (including items) to enable change tracking.
         var existing = await _context.ToDoLists
-            .Include(l => l.ItemsForEfCore) // internal collection mapped for EF only
-            .FirstOrDefaultAsync(x => x.Id == list.Id, cancellationToken);
+            .Include(l => l.ItemsForEfCore)
+            .FirstOrDefaultAsync(l => l.Id == list.Id, cancellationToken);
 
         if (existing is null)
         {
@@ -72,15 +97,15 @@ public sealed class ToDoListRepository : IToDoListRepository
         }
         else
         {
-            // Update root values. Item synchronization should be handled by the aggregate/config where possible.
             _context.Entry(existing).CurrentValues.SetValues(list);
-            // If you maintain items externally, attach/sync them here as needed.
         }
 
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Deletes a list aggregate by identifier, if it exists.
+    /// </summary>
     public async Task DeleteAsync(ToDoListId id, CancellationToken cancellationToken)
     {
         var entity = await _context.ToDoLists.FindAsync(new object[] { id }, cancellationToken);
@@ -91,14 +116,16 @@ public sealed class ToDoListRepository : IToDoListRepository
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves a single item by its identifier, ensuring that it belongs to the given list
+    /// and that the list is owned by the given user (read-only).
+    /// </summary>
     public async Task<ToDoItem?> GetItemByIdAsync(
         ToDoListId listId,
         ToDoItemId itemId,
         AccountId userId,
         CancellationToken cancellationToken)
     {
-        // Direct, read-only lookup for a single item, ensuring list ownership by user.
         return await _context.ToDoItems
             .AsNoTracking()
             .Where(i => i.Id == itemId && EF.Property<ToDoListId>(i, "ListId") == listId)
@@ -106,53 +133,60 @@ public sealed class ToDoListRepository : IToDoListRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    /// <inheritdoc />
-    public async Task<IReadOnlyCollection<(ToDoItem Item, ToDoListId ListId)>> GetItemsWithDueDateAndListIdAsync(
-        AccountId userId,
+    /// <summary>
+    /// Retrieves all non-completed items that have a due date and belong to any of the specified lists.
+    /// Optional window filtering (from/to) is applied on the provider type to ensure translation.
+    /// The query is read-only and avoids JOINs against DbSets.
+    /// </summary>
+    public async Task<IReadOnlyCollection<(ToDoItem Item, ToDoListId ListId)>> GetItemsWithDueDateByListIdsAsync(
+        IReadOnlyCollection<ToDoListId> listIds,
         DateTime? fromDate,
         DateTime? toDate,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
-        var query =
-            from item in _context.ToDoItems.AsNoTracking()
-            join list in _context.ToDoLists.AsNoTracking()
-                on EF.Property<Guid>(item, "ListId") equals list.Id.Value
-            where list.UserId == userId && item.DueDate != null
-            select new { item, listId = list.Id };
+        if (listIds is null || listIds.Count == 0)
+            return Array.Empty<(ToDoItem, ToDoListId)>();
+
+        var listIdsVo = listIds.ToArray();
+
+        var q = _context.ToDoItems
+            .AsNoTracking()
+            .Where(i => listIdsVo.Contains(EF.Property<ToDoListId>(i, "ListId")))
+            .Where(i => EF.Property<DateTime?>(i, "DueDate") != null && !i.IsCompleted);
 
         if (fromDate.HasValue)
-        {
-            query = query.Where(x => x.item.DueDate!.Value >= fromDate.Value);
-        }
+            q = q.Where(i => EF.Property<DateTime?>(i, "DueDate")! >= fromDate.Value);
 
         if (toDate.HasValue)
-        {
-            query = query.Where(x => x.item.DueDate!.Value <= toDate.Value);
-        }
+            q = q.Where(i => EF.Property<DateTime?>(i, "DueDate")! <= toDate.Value);
 
-        var result = await query
-            .OrderBy(x => x.item.DueDate!.Value)
-            .ToListAsync(cancellationToken);
+        var rows = await q
+            .OrderBy(i => EF.Property<DateTime?>(i, "DueDate"))
+            .Select(i => new
+            {
+                Item = i,
+                ListId = EF.Property<ToDoListId>(i, "ListId")
+            })
+            .ToListAsync(ct);
 
-        return result
-            .Select(x => (x.item, x.listId))
-            .ToList();
+        return rows.Select(r => (r.Item, r.ListId)).ToList();
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves all items for a given list owned by the given user (read-only).
+    /// Returns an empty collection when the list does not exist or is not owned by the user.
+    /// </summary>
     public async Task<IReadOnlyCollection<ToDoItem>> GetAllItemsByListIdAndUserAsync(
         ToDoListId listId,
         AccountId userId,
         CancellationToken cancellationToken)
     {
-        // First, ensure the list exists and belongs to the user.
         var exists = await _context.ToDoLists
             .AnyAsync(l => l.Id == listId && l.UserId == userId, cancellationToken);
 
         if (!exists)
-            return new List<ToDoItem>();
+            return Array.Empty<ToDoItem>();
 
-        // Then, fetch items by the shadow FK.
         return await _context.ToDoItems
             .AsNoTracking()
             .Where(i => EF.Property<ToDoListId>(i, "ListId") == listId)
