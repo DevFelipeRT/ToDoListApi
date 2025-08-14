@@ -122,7 +122,8 @@ public abstract class ApiControllerBase : ControllerBase
         {
             Success = false,
             Message = "An unexpected error occurred",
-            Errors = new List<string> { "Please try again later or contact support" }
+            //Errors = new List<string> { "Please try again later or contact support" }
+            Errors = new List<string> { ex.Message }
         });
     }
 }
