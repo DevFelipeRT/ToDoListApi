@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,29 +11,35 @@ using MediatR;
 namespace Application.Lists.Queries.Items.Handlers;
 
 /// <summary>
-/// Handles the query to retrieve all to-do items with active due dates for a specific user.
+/// Handles the query that retrieves to-do items with active due dates for a given user.
+/// Orchestrates: (1) fetch user's list IDs; (2) fetch items by IN(ListId) and optional date window.
 /// </summary>
-public sealed class GetItemsWithDueDatesHandler : IRequestHandler<GetItemsWithDueDatesQuery, IEnumerable<ToDoItemDto>>
+public sealed class GetItemsWithDueDatesHandler
+    : IRequestHandler<GetItemsWithDueDatesQuery, IEnumerable<ToDoItemDto>>
 {
     private readonly IToDoListRepository _toDoListRepository;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GetItemsWithDueDatesHandler"/> class.
-    /// </summary>
-    /// <param name="toDoListRepository">Repository for reading To-Do lists and items.</param>
     public GetItemsWithDueDatesHandler(IToDoListRepository toDoListRepository)
     {
-        _toDoListRepository = toDoListRepository;
+        _toDoListRepository = toDoListRepository ?? throw new ArgumentNullException(nameof(toDoListRepository));
     }
 
-    /// <inheritdoc/>
-    public async Task<IEnumerable<ToDoItemDto>> Handle(GetItemsWithDueDatesQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ToDoItemDto>> Handle(
+        GetItemsWithDueDatesQuery request,
+        CancellationToken cancellationToken)
     {
-        // Convert primitive data to Value Objects
         var userId = AccountId.FromGuid(request.UserId);
 
-        var tuples = await _toDoListRepository.GetItemsWithDueDateAndListIdAsync( userId, request.FromDate, request.ToDate, cancellationToken);
+        var listIds = await _toDoListRepository.GetIdsByUserAsync(userId, cancellationToken);
+        if (listIds is null || listIds.Count == 0)
+            return Enumerable.Empty<ToDoItemDto>();
 
-        return tuples.Select(t => ToDoItemDto.FromDomain(t.Item, t.ListId));
+        var tuples = await _toDoListRepository.GetItemsWithDueDateByListIdsAsync(
+            listIds,
+            request.FromDate,
+            request.ToDate,
+            cancellationToken);
+
+        return tuples.Select(t => ToDoItemDto.FromDomain(t.Item, t.ListId)).ToList();
     }
 }
