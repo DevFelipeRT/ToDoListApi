@@ -42,6 +42,13 @@ public sealed class ToDoItemId : IEquatable<ToDoItemId>
         return new ToDoItemId(guid);
     }
 
+    /// <summary>
+    /// Creates a ToDoItemId from a Guid.
+    /// </summary>
+    /// <param name="value">The Guid value to use as identifier.</param>
+    /// <returns>A ToDoItemId instance.</returns>
+    public static ToDoItemId FromGuid(Guid value) => new ToDoItemId(value);
+
     /// <inheritdoc/>
     public override bool Equals(object? obj) => Equals(obj as ToDoItemId);
 

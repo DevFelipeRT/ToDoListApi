@@ -30,6 +30,13 @@ public sealed class ToDoListId : IEquatable<ToDoListId>
     public static ToDoListId New() => new ToDoListId(Guid.NewGuid());
 
     /// <summary>
+    /// Creates a ToDoListId from a Guid.
+    /// </summary>
+    /// <param name="guid">The Guid value to use as identifier.</param>
+    /// <returns>A ToDoListId instance.</returns>
+    public static ToDoListId FromGuid(Guid guid) => new ToDoListId(guid);
+
+    /// <summary>
     /// Creates a ToDoListId from a Guid string representation.
     /// </summary>
     /// <param name="value">The string representation of the Guid.</param>
