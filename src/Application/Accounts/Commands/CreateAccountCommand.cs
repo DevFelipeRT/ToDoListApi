@@ -1,12 +1,12 @@
 using System;
 using MediatR;
 
-namespace Application.Accounts.Commands.Users;
+namespace Application.Accounts.Commands;
 
 /// <summary>
-/// Command representing the intention to create a new user.
+/// Command representing the intention to create a new account.
 /// </summary>
-public sealed class CreateUserCommand : IRequest<Guid>
+public sealed class CreateAccountCommand : IRequest<Guid>
 {
     public string Email { get; }
     public string Username { get; }
@@ -14,9 +14,9 @@ public sealed class CreateUserCommand : IRequest<Guid>
     public string PlainPassword { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CreateUserCommand"/> class.
+    /// Initializes a new instance of the <see cref="CreateAccountCommand"/> class.
     /// </summary>
-    public CreateUserCommand(
+    public CreateAccountCommand(
         string email,
         string username,
         string name,

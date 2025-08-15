@@ -2,39 +2,39 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Domain.Accounts;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.Services.Interfaces;
 using Domain.Accounts.ValueObjects;
+using Domain.Accounts.Policies.Interfaces;
+using Domain.Accounts.Entities;
 
-namespace Application.Accounts.Commands.Users.Handlers;
+namespace Application.Accounts.Commands.Handlers;
 
 /// <summary>
-/// Handler responsible for creating a new user account.
-/// Contains the application logic for user registration including validation and persistence.
+/// Handler responsible for creating a new account.
+/// Contains the application logic for account registration including validation and persistence.
 /// </summary>
-public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
+public sealed class CreateAccountHandler : IRequestHandler<CreateAccountCommand, Guid>
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IAccountUniquenessChecker _uniquenessChecker;
+    private readonly IAccountRepository _accountRepository;
+    private readonly IAccountUniquenessPolicy _uniquenessChecker;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IPasswordPolicyValidator _passwordPolicyValidator;
+    private readonly IPasswordPolicy _passwordPolicyValidator;
 
-    public CreateUserHandler(
-        IUserRepository userRepository,
-        IAccountUniquenessChecker uniquenessChecker,
+    public CreateAccountHandler(
+        IAccountRepository accountRepository,
+        IAccountUniquenessPolicy uniquenessChecker,
         IPasswordHasher passwordHasher,
-        IPasswordPolicyValidator passwordPolicyValidator)
+        IPasswordPolicy passwordPolicyValidator)
     {
-        _userRepository = userRepository;
+        _accountRepository = accountRepository;
         _uniquenessChecker = uniquenessChecker;
         _passwordHasher = passwordHasher;
         _passwordPolicyValidator = passwordPolicyValidator;
     }
 
-    public async Task<Guid> Handle(CreateUserCommand command, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
     {
-        // Convert primitive data to Value Objects
         var email = new AccountEmail(command.Email);
         var username = new AccountUsername(command.Username);
         var name = new AccountName(command.Name);
@@ -45,12 +45,11 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
 
         var passwordHash = GeneratePasswordHash(command.PlainPassword);
 
-        var user = CreateUserInstance(email, username, name, passwordHash);
+        var account = CreateAccountInstance(email, username, name, passwordHash);
 
-        // Persist user
-        await _userRepository.AddAsync(user, cancellationToken);
+        await _accountRepository.AddAsync(account, cancellationToken);
 
-        return user.Id.Value;
+        return account.Id.Value;
     }
 
     private async Task ValidateUniqueness(AccountEmail email, AccountUsername username, CancellationToken cancellationToken)
@@ -73,12 +72,12 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
         return _passwordHasher.HashPassword(plainPassword);
     }
     
-    private User CreateUserInstance(
+    private Account CreateAccountInstance(
         AccountEmail email,
         AccountUsername username,
         AccountName name,
         string passwordHash)
     {
-        return new User(email, username, name, passwordHash);
+        return Account.Create(email, username, name, passwordHash);
     }
 }
