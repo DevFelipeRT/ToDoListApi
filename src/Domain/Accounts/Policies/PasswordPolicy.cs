@@ -1,11 +1,9 @@
-using Domain.Accounts.Services.Interfaces;
-
-namespace Domain.Accounts.Services;
+namespace Domain.Accounts.Policies.Interfaces;
 
 /// <summary>
 /// Implementation of password policy validation service.
 /// </summary>
-public sealed class PasswordPolicyValidator : IPasswordPolicyValidator
+public sealed class PasswordPolicy : IPasswordPolicy
 {
     private const int MinLength = 8;
     private const int MaxLength = 128;
