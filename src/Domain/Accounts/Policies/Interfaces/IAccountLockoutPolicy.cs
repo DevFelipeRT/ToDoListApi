@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Domain.Accounts.ValueObjects;
 
-namespace Domain.Accounts.Services.Interfaces;
+namespace Domain.Accounts.Policies.Interfaces;
 
 /// <summary>
 /// Service that handles account lockout policy for failed authentication attempts.

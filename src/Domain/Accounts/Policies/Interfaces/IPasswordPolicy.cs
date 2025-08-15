@@ -1,9 +1,9 @@
-namespace Domain.Accounts.Services.Interfaces;
+namespace Domain.Accounts.Policies.Interfaces;
 
 /// <summary>
 /// Service that validates password complexity policies.
 /// </summary>
-public interface IPasswordPolicyValidator
+public interface IPasswordPolicy
 {
     bool IsValid(string password, out string? reason);
 }
