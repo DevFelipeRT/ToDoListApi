@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Domain.Lists;
+using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 
 namespace Domain.Lists.Services.Interfaces

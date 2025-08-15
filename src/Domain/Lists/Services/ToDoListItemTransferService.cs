@@ -1,26 +1,26 @@
 using System.Linq;
-using Domain.Accounts;
-using Domain.Lists;
+using Domain.Accounts.Entities;
+using Domain.Lists.Entities;
 using Domain.Lists.Services.Interfaces;
 
 namespace Domain.Lists.Services;
 
 /// <summary>
-/// Provides functionality to transfer a to-do item between lists for a specific user.
+/// Provides functionality to transfer a to-do item between lists for a specific account.
 /// </summary>
 public class ToDoListItemTransferService : IToDoListItemTransferService
 {
     /// <summary>
-    /// Transfers a to-do item from its source list to the target list for the specified user.
+    /// Transfers a to-do item from its source list to the target list for the specified account.
     /// </summary>
-    /// <param name="user">The user who owns the lists.</param>
+    /// <param name="account">The account who owns the lists.</param>
     /// <param name="item">The to-do item to be transferred.</param>
     /// <param name="sourceList">The source to-do list.</param>
     /// <param name="targetList">The target to-do list.</param>
     /// <returns>True if the transfer was successful; otherwise, false.</returns>
-    public bool TransferToDoItem(User user, ToDoItem item, ToDoList sourceList, ToDoList targetList)
+    public bool TransferToDoItem(Account account, ToDoItem item, ToDoList sourceList, ToDoList targetList)
     {
-        if (!sourceList.BelongsToUser(user) || !targetList.BelongsToUser(user))
+        if (!sourceList.BelongsToAccount(account) || !targetList.BelongsToAccount(account))
             return false;
 
         if (targetList.GetAllItems().Any(i => i.Id == item.Id))
