@@ -23,22 +23,22 @@ public interface IAccountRepository
     Task UpdateAsync(Account account, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets a account by unique identifier.
+    /// Gets an account by unique identifier.
     /// Returns null if not found.
     /// </summary>
     Task<Account?> GetByIdAsync(AccountId accountId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets a account by email address.
+    /// Gets an account by email address.
     /// Returns null if not found.
     /// </summary>
     Task<Account?> GetByEmailAsync(AccountEmail email, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets a account by accountname.
+    /// Gets an account by username.
     /// Returns null if not found.
     /// </summary>
-    Task<Account?> GetByAccountnameAsync(AccountName accountname, CancellationToken cancellationToken);
+    Task<Account?> GetByUsernameAsync(AccountUsername username, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets all accounts in the data store.
@@ -51,7 +51,7 @@ public interface IAccountRepository
     /// </summary>
     Task<IReadOnlyCollection<Account>> SearchAsync(
         AccountName? name = null,
-        AccountName? accountname = null,
+        AccountUsername? username = null,
         AccountEmail? email = null,
         bool? isActive = null,
         int page = 1,

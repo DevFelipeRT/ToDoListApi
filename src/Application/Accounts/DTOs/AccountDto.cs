@@ -1,5 +1,5 @@
 using System;
-using Domain.Accounts;
+using Domain.Accounts.Entities;
 
 namespace Application.Accounts.DTOs;
 
@@ -13,16 +13,16 @@ public class AccountDto
     public string Email { get; }
     public string Username { get; }
     public string Name { get; }
-    public DateTime CreatedAt { get; }
-    public DateTime? LastLoginAt { get; }
+    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset? LastLoginAt { get; }
 
     public AccountDto(
         string id,
         string email,
         string username,
         string name,
-        DateTime createdAt,
-        DateTime? lastLoginAt)
+        DateTimeOffset createdAt,
+        DateTimeOffset? lastLoginAt)
     {
         Id = id;
         Email = email;
