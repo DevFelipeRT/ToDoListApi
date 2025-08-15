@@ -14,13 +14,13 @@ public interface IAuthorizationService
 {
 
     /// <summary>
-    /// Asserts that the specified user has access rights to the given To-Do list.
-    /// Throws an exception if the user is not authorized or if the list does not exist.
+    /// Asserts that the specified account has access rights to the given To-Do list.
+    /// Throws an exception if the account is not authorized or if the list does not exist.
     /// </summary>
-    /// <param name="userId">The identifier of the user requesting access.</param>
+    /// <param name="accountId">The identifier of the account requesting access.</param>
     /// <param name="listId">The identifier of the To-Do list.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <exception cref="UnauthorizedAccessException">Thrown if the user does not have permission to access or modify the list.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown if the account does not have permission to access or modify the list.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the list does not exist.</exception>
-    Task AssertUserListAccessAsync(AccountId userId, ToDoListId listId, CancellationToken cancellationToken);
+    Task AssertUserListAccessAsync(AccountId accountId, ToDoListId listId, CancellationToken cancellationToken);
 }
