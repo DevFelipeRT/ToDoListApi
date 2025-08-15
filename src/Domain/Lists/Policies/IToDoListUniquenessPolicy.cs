@@ -3,12 +3,12 @@ using System.Threading.Tasks;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.ValueObjects;
 
-namespace Domain.Lists.Services.Interfaces;
+namespace Domain.Lists.Policies;
 
 /// <summary>
-/// Contract for checking the uniqueness of a To-Do list title for a given user.
+/// Policy that checks the uniqueness of a to-do list for a specific user.
 /// </summary>
-public interface IToDoListTitleUniquenessChecker
+public interface IToDoListUniquenessPolicy
 {
     /// <summary>
     /// Checks if the provided title is unique for the specified user.
