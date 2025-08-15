@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Domain.Lists.ValueObjects;
 
-namespace Domain.Lists;
+namespace Domain.Lists.Entities;
 
 /// <summary>
 /// Represents a collection of To-Do items within a To-Do List aggregate.

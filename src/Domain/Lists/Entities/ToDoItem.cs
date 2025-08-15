@@ -1,6 +1,6 @@
 using Domain.Lists.ValueObjects;
 
-namespace Domain.Lists;
+namespace Domain.Lists.Entities;
 
 /// <summary>
 /// Represents a single To-Do item.

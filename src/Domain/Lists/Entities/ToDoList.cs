@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Domain.Accounts;
+using Domain.Accounts.Entities;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.ValueObjects;
 
-namespace Domain.Lists;
+namespace Domain.Lists.Entities;
 
 /// <summary>
 /// Represents a single To-Do list aggregate root.
@@ -18,9 +18,9 @@ public class ToDoList
     public ToDoListId Id { get; private set; }
 
     /// <summary>
-    /// Gets the user identifier who owns this To-Do list.
+    /// Gets the account identifier who owns this To-Do list.
     /// </summary>
-    public AccountId UserId { get; private set; }
+    public AccountId AccountId { get; private set; }
 
     /// <summary>
     /// Gets the title of the list.
@@ -65,7 +65,7 @@ public class ToDoList
     private ToDoList()
     {
         Id = default!;
-        UserId = default!;
+        AccountId = default!;
         Title = default!;
     }
 
@@ -73,13 +73,13 @@ public class ToDoList
     /// Initializes a new instance of the <see cref="ToDoList"/> class with a specified ID.
     /// </summary>
     /// <param name="id">The unique identifier of the list.</param>
-    /// <param name="userId">The identifier of the user who owns the list.</param>
+    /// <param name="accountId">The identifier of the account who owns the list.</param>
     /// <param name="title">The validated title of the list.</param>
     /// <param name="description">The validated description of the list (optional).</param>
-    public ToDoList(ToDoListId id, AccountId userId, Title title, Description? description = null)
+    public ToDoList(ToDoListId id, AccountId accountId, Title title, Description? description = null)
     {
         Id = id;
-        UserId = userId;
+        AccountId = accountId;
         Title = title;
         CreatedAt = DateTime.UtcNow;
         IsCompleted = false;
@@ -89,20 +89,20 @@ public class ToDoList
     /// <summary>
     /// Initializes a new instance of the <see cref="ToDoList"/> class with a generated ID.
     /// </summary>
-    /// <param name="userId">The identifier of the user who owns the list.</param>
+    /// <param name="accountId">The identifier of the account who owns the list.</param>
     /// <param name="title">The validated title of the list.</param>
     /// <param name="description">The validated description of the list (optional).</param>
-    public ToDoList(AccountId userId, Title title, Description? description = null)
-        : this(ToDoListId.New(), userId, title, description) { }
+    public ToDoList(AccountId accountId, Title title, Description? description = null)
+        : this(ToDoListId.New(), accountId, title, description) { }
 
     /// <summary>
-    /// Verifies if the list belongs to a given user.
+    /// Verifies if the list belongs to a given account.
     /// </summary>
-    /// <param name="user">The user to check ownership for.</param>
-    /// <returns>True if the list belongs to the user; otherwise, false.</returns>
-    public bool BelongsToUser(User user)
+    /// <param name="account">The account to check ownership for.</param>
+    /// <returns>True if the list belongs to the account; otherwise, false.</returns>
+    public bool BelongsToAccount(Account account)
     {
-        return UserId == user.Id;
+        return AccountId == account.Id;
     }
 
     /// <summary>
