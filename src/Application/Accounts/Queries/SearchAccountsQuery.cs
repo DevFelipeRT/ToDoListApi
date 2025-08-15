@@ -1,9 +1,9 @@
-namespace Application.Accounts.Queries.Users;
+namespace Application.Accounts.Queries;
 
 /// <summary>
-/// Query representing the intention to search users by optional filters and pagination.
+/// Query representing the intention to search accounts by optional filters and pagination.
 /// </summary>
-public sealed class SearchUsersQuery
+public sealed class SearchAccountsQuery
 {
     public string? Name { get; }
     public string? Username { get; }
@@ -12,7 +12,7 @@ public sealed class SearchUsersQuery
     public int Page { get; }
     public int PageSize { get; }
 
-    public SearchUsersQuery(
+    public SearchAccountsQuery(
         string? name = null,
         string? username = null,
         string? email = null,
