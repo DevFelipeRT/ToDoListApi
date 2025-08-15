@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Domain.Accounts.ValueObjects;
-using Domain.Lists;
+using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 
 namespace Domain.Lists.Repositories;
