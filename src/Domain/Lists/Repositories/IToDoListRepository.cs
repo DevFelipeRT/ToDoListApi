@@ -17,9 +17,7 @@ public interface IToDoListRepository
     /// Adds a new ToDoList aggregate to the data store.
     /// </summary>
     /// <param name="list">The ToDoList aggregate to add.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous add operation.</returns>
-    Task AddAsync(ToDoList list, CancellationToken cancellationToken);
+    public void Add(ToDoList list);
 
     /// <summary>
     /// Retrieves all ToDoList aggregates for the specified account from the data store.

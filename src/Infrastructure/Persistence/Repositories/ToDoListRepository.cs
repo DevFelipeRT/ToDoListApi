@@ -37,10 +37,9 @@ public sealed class ToDoListRepository : IToDoListRepository
     /// <summary>
     /// Persists a new <see cref="ToDoList"/> aggregate.
     /// </summary>
-    public async Task AddAsync(ToDoList list, CancellationToken cancellationToken)
+    public void Add(ToDoList list)
     {
-        await _context.ToDoLists.AddAsync(list, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        _context.ToDoLists.Add(list);
     }
 
     /// <summary>
@@ -99,8 +98,6 @@ public sealed class ToDoListRepository : IToDoListRepository
         {
             _context.Entry(existing).CurrentValues.SetValues(list);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -112,7 +109,6 @@ public sealed class ToDoListRepository : IToDoListRepository
         if (entity is not null)
         {
             _context.ToDoLists.Remove(entity);
-            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 

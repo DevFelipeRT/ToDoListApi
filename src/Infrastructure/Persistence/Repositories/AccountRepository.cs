@@ -26,17 +26,15 @@ public class AccountRepository : IAccountRepository
     }
 
     /// <inheritdoc/>
-    public async Task AddAsync(Account account, CancellationToken cancellationToken)
+    public void Add(Account account)
     {
-        await _context.Accounts.AddAsync(account, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        _context.Accounts.Add(account);
     }
 
     /// <inheritdoc/>
-    public async Task UpdateAsync(Account account, CancellationToken cancellationToken)
+    public void Update(Account account)
     {
         _context.Accounts.Update(account);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc/>

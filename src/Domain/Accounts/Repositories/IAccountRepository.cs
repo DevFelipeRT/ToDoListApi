@@ -15,12 +15,12 @@ public interface IAccountRepository
     /// <summary>
     /// Adds a new account aggregate to the data store.
     /// </summary>
-    Task AddAsync(Account account, CancellationToken cancellationToken);
+    public void Add(Account account);
 
     /// <summary>
     /// Updates an existing account aggregate in the data store.
     /// </summary>
-    Task UpdateAsync(Account account, CancellationToken cancellationToken);
+    public void Update(Account account);
 
     /// <summary>
     /// Gets an account by unique identifier.
