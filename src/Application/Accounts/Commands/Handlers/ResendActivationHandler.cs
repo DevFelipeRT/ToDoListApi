@@ -1,41 +1,53 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Application.Accounts.Abstractions;
 using Application.Accounts.Services;
-using Domain.Accounts.Entities;
+using Application.Notifications.Email;
 using Domain.Accounts.Repositories;
+using Domain.Accounts.ValueObjects;
 using MediatR;
 
 namespace Application.Accounts.Commands.Handlers;
 
 public sealed class ResendActivationHandler : IRequestHandler<ResendActivationCommand>
 {
-    private readonly IAccountRepository _accountRepository;
-    private readonly IActivationTokenRepository _tokens;
+    private readonly IAccountRepository _accounts;
     private readonly IEmailSender _email;
-    private readonly IUnitOfWork _uow;
-    private readonly IClock _clock;
-    private readonly IAppUrls _urls;
+    private readonly IActivationLinkBuilder _linkBuilder;
 
     public ResendActivationHandler(
-        IAccountRepository accountRepository, IActivationTokenRepository tokens,
-        IEmailSender email, IUnitOfWork uow, IClock clock, IAppUrls urls)
+        IAccountRepository accounts,
+        IEmailSender email,
+        IActivationLinkBuilder linkBuilder)
     {
-        _accountRepository = accountRepository; _tokens = tokens; _email = email; _uow = uow; _clock = clock; _urls = urls;
+        _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
+        _email = email ?? throw new ArgumentNullException(nameof(email));
+        _linkBuilder = linkBuilder ?? throw new ArgumentNullException(nameof(linkBuilder));
     }
 
-    public async Task<Unit> Handle(ResendActivationCommand cmd, CancellationToken ct)
+    public async Task Handle(ResendActivationCommand command, CancellationToken cancellationToken)
     {
-        var user = await _accountRepository.FindByEmailAsync(cmd.Email, ct);
-        if (user is null || user.EmailConfirmed) return Unit.Value; // do nothing
+        var email = AccountEmail.FromString(command.Email);
 
-        // Optionally throttle: do not issue if a valid token exists recently
-        await _tokens.InvalidateAllAsync(user.Id, ct);
+        var account = await _accounts.GetForActivationByEmailAsync(email, cancellationToken);
+        if (account is null || account.ActivatedAt.HasValue) return;
 
-        var (raw, hash) = ActivationTokenGenerator.Create();
-        var expiresAt = _clock.UtcNow().AddHours(24);
-        await _tokens.AddAsync(new ActivationToken(user.Id, hash, expiresAt), ct);
-        await _uow.SaveChangesAsync(ct);
+        var (raw, hash) = ActivationTokenGenerator.Create(account.Id, DateTimeOffset.Now, TimeSpan.FromHours(2));
+        var now = DateTimeOffset.UtcNow;
 
-        var link = _urls.BuildActivationLink(raw);
-        await _email.SendAsync(user.Email, "Activate your account", EmailTemplates.Activation(link), ct);
-        return Unit.Value;
+        account.CreateActivationToken(hash, now, TimeSpan.FromHours(24), revokeExistingFirst: true);
+        await _accounts.UpdateAsync(account, cancellationToken);
+
+        var link = _linkBuilder.Build(raw.ToString());
+
+        var message = new EmailMessage(
+            to: account.Email.ToString(),
+            subject: "Activate your account",
+            htmlBody: $"<p>To activate your account, click <a href=\"{link}\">here</a>.</p>" +
+                      $"<p>If the link does not work, use this token: <strong>{raw}</strong></p>",
+            textBody: $"Activate your account: {link}{Environment.NewLine}Token: {raw}");
+
+        await _email.SendAsync(message, cancellationToken);
     }
 }
