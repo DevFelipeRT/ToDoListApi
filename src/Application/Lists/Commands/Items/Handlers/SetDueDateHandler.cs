@@ -2,10 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Domain.Lists.Services.Interfaces;
-using Domain.Lists.ValueObjects;
 using Domain.Accounts.ValueObjects;
+using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
+using Domain.Lists.Services.Interfaces;
 
 namespace Application.Lists.Commands.Items.Handlers;
 
@@ -28,13 +28,13 @@ public sealed class SetDueDateHandler : IRequestHandler<SetDueDateCommand>
 
     public async Task Handle(SetDueDateCommand request, CancellationToken cancellationToken)
     {
-        // Convert primitives to Value Objects (assuming UserId is added to command)
+        // Convert primitives to Value Objects
         var listId = new ToDoListId(request.ListId);
         var itemId = new ToDoItemId(request.ItemId);
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
         var dueDate = new DueDate(request.DueDate);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
         var list = await _listRepository.GetByIdAsync(listId, cancellationToken)
             ?? throw new InvalidOperationException("List not found.");

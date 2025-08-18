@@ -2,11 +2,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Domain.Lists.Services.Interfaces;
-using Domain.Lists.ValueObjects;
-using Domain.Lists;
-using Domain.Lists.Repositories;
 using Domain.Accounts.ValueObjects;
+using Domain.Lists.Entities;
+using Domain.Lists.ValueObjects;
+using Domain.Lists.Repositories;
+using Domain.Lists.Services.Interfaces;
 
 namespace Application.Lists.Commands.Items.Handlers;
 
@@ -30,12 +30,12 @@ public sealed class CreateToDoItemHandler : IRequestHandler<CreateToDoItemComman
     public async Task<Guid> Handle(CreateToDoItemCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
         var listId = new ToDoListId(request.ListId);
         var title = new Title(request.Title);
         var dueDate = request.DueDate.HasValue ? new DueDate(request.DueDate.Value) : null;
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
         var list = await _listRepository.GetByIdAsync(listId, cancellationToken)
             ?? throw new InvalidOperationException("List not found.");

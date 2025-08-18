@@ -2,11 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Application.Lists.Commands.Items;
-using Domain.Lists.Services.Interfaces;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
+using Domain.Lists.Services.Interfaces;
 using Domain.Accounts.Repositories;
 
 namespace Application.Lists.Commands.Items.Handlers;
@@ -18,18 +17,18 @@ namespace Application.Lists.Commands.Items.Handlers;
 public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
 {
     private readonly IToDoListRepository _listRepository;
-    private readonly IUserRepository _userRepository;
+    private readonly IAccountRepository _accountRepository;
     private readonly IAuthorizationService _authorizationService;
     private readonly IToDoListItemTransferService _itemTransferService;
 
     public TransferItemHandler(
         IToDoListRepository listRepository,
-        IUserRepository userRepository,
+        IAccountRepository accountRepository,
         IAuthorizationService authorizationService,
         IToDoListItemTransferService itemTransferService)
     {
         _listRepository = listRepository;
-        _userRepository = userRepository;
+        _accountRepository = accountRepository;
         _authorizationService = authorizationService;
         _itemTransferService = itemTransferService;
     }
@@ -37,13 +36,13 @@ public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
     public async Task Handle(TransferItemCommand request, CancellationToken cancellationToken)
     {
         // Convert primitives to Value Objects
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
         var sourceListId = new ToDoListId(request.SourceListId);
         var targetListId = new ToDoListId(request.TargetListId);
         var itemId = new ToDoItemId(request.ItemId);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, sourceListId, cancellationToken);
-        await _authorizationService.AssertUserListAccessAsync(userId, targetListId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, sourceListId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, targetListId, cancellationToken);
 
         var sourceList = await _listRepository.GetByIdAsync(sourceListId, cancellationToken)
             ?? throw new InvalidOperationException("Source list not found.");
@@ -53,10 +52,10 @@ public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
         var item = sourceList.GetItem(itemId)
             ?? throw new InvalidOperationException("Item not found in source list.");
 
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
-            ?? throw new InvalidOperationException("User not found.");
+        var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken)
+            ?? throw new InvalidOperationException("Account not found.");
 
-        var transferred = _itemTransferService.TransferToDoItem(user, item, sourceList, targetList);
+        var transferred = _itemTransferService.TransferToDoItem(account, item, sourceList, targetList);
         if (!transferred)
             throw new InvalidOperationException("Could not transfer the item.");
 
