@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Domain.Lists;
-using Domain.Accounts;
+using Domain.Lists.Entities;
+using Domain.Accounts.Entities;
 
 namespace Infrastructure.Persistence
 {
@@ -8,7 +8,7 @@ namespace Infrastructure.Persistence
     {
         public DbSet<ToDoItem> ToDoItems { get; set; }
         public DbSet<ToDoList> ToDoLists { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<Account> Accounts { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
