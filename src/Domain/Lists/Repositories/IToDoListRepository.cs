@@ -22,20 +22,20 @@ public interface IToDoListRepository
     Task AddAsync(ToDoList list, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Retrieves all ToDoList aggregates for the specified user from the data store.
+    /// Retrieves all ToDoList aggregates for the specified account from the data store.
     /// </summary>
-    /// <param name="userId">The identifier of the user whose lists to retrieve.</param>
+    /// <param name="accountId">The identifier of the account whose lists to retrieve.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that returns a collection of ToDoList aggregates for the user.</returns>
-    Task<IReadOnlyCollection<ToDoList>> GetAllByUserAsync(AccountId userId, CancellationToken cancellationToken);
+    /// <returns>A task that returns a collection of ToDoList aggregates for the account.</returns>
+    Task<IReadOnlyCollection<ToDoList>> GetAllByAccountAsync(AccountId accountId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Retrieves the unique identifiers of all ToDoList aggregates for the specified user.
+    /// Retrieves the unique identifiers of all ToDoList aggregates for the specified account.
     /// </summary>
-    /// <param name="userId">The identifier of the user whose list IDs to retrieve.</param>
+    /// <param name="accountId">The identifier of the account whose list IDs to retrieve.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that returns a collection of ToDoListId values for the user.</returns>
-    Task<IReadOnlyList<ToDoListId>> GetIdsByUserAsync(AccountId userId, CancellationToken cancellationToken);
+    /// <returns>A task that returns a collection of ToDoListId values for the account.</returns>
+    Task<IReadOnlyList<ToDoListId>> GetIdsByAccountAsync(AccountId accountId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Retrieves a ToDoList aggregate by its unique identifier.
@@ -68,13 +68,13 @@ public interface IToDoListRepository
     /// </summary>
     /// <param name="listId">The unique identifier of the to-do list.</param>
     /// <param name="itemId">The unique identifier of the to-do item.</param>
-    /// <param name="userId">The unique identifier of the user (for ownership validation).</param>
+    /// <param name="accountId">The unique identifier of the account (for ownership validation).</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The to-do item if found and owned by the user; otherwise, null.</returns>
+    /// <returns>The to-do item if found and owned by the account; otherwise, null.</returns>
     Task<ToDoItem?> GetItemByIdAsync(
         ToDoListId listId,
         ToDoItemId itemId,
-        AccountId userId,
+        AccountId accountId,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -95,11 +95,11 @@ public interface IToDoListRepository
     /// Retrieves all items in a specific list, checking ownership.
     /// </summary>
     /// <param name="listId">The unique identifier of the to-do list.</param>
-    /// <param name="userId">The unique identifier of the user (for ownership validation).</param>
+    /// <param name="accountId">The unique identifier of the account (for ownership validation).</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A collection of to-do items in the list if owned by the user.</returns>
-    Task<IReadOnlyCollection<ToDoItem>> GetAllItemsByListIdAndUserAsync(
+    /// <returns>A collection of to-do items in the list if owned by the account.</returns>
+    Task<IReadOnlyCollection<ToDoItem>> GetAllItemsByListIdAndAccountAsync(
         ToDoListId listId,
-        AccountId userId,
+        AccountId accountId,
         CancellationToken cancellationToken);
 }

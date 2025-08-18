@@ -57,4 +57,12 @@ public interface IAccountRepository
         int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets an account prepared for the activation flow by e-mail.
+    /// The returned aggregate MUST include the minimal activation token data needed by the domain
+    /// to issue/revoke tokens (implementation may load only the relevant token(s)).
+    /// Returns null if not found.
+    /// </summary>
+    Task<Account?> GetForActivationByEmailAsync(AccountEmail email, CancellationToken cancellationToken);
 }
