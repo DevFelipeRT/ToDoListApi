@@ -9,11 +9,11 @@ namespace Application.Lists.Commands.Lists;
 public sealed class DeleteToDoListCommand : IRequest<bool>
 {
     public Guid ListId { get; }
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
-    public DeleteToDoListCommand(Guid listId, Guid userId)
+    public DeleteToDoListCommand(Guid listId, Guid accountId)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }

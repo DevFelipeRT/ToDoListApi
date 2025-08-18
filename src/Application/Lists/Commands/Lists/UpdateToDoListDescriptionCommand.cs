@@ -9,13 +9,13 @@ namespace Application.Lists.Commands.Lists;
 public sealed class UpdateToDoListDescriptionCommand : IRequest<bool>
 {
     public Guid ListId { get; }
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
     public string? NewDescription { get; }
 
-    public UpdateToDoListDescriptionCommand(Guid listId, Guid userId, string? newDescription = null)
+    public UpdateToDoListDescriptionCommand(Guid listId, Guid accountId, string? newDescription = null)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
         NewDescription = newDescription;
     }
 }

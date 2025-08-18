@@ -4,14 +4,14 @@ using MediatR;
 namespace Application.Lists.Commands.Lists;
 
 /// <summary>
-/// Command to create a new To-Do list for a user.
+/// Command to create a new To-Do list for an account.
 /// </summary>
 public sealed class CreateToDoListCommand : IRequest<Guid>
 {
     /// <summary>
-    /// Gets the identifier of the user who owns the list.
+    /// Gets the identifier of the account who owns the list.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Gets the title of the new To-Do list.
@@ -26,12 +26,12 @@ public sealed class CreateToDoListCommand : IRequest<Guid>
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateToDoListCommand"/> class.
     /// </summary>
-    /// <param name="userId">The identifier of the user.</param>
+    /// <param name="accountId">The identifier of the account.</param>
     /// <param name="title">The title of the list.</param>
     /// <param name="description">The optional description of the list.</param>
-    public CreateToDoListCommand(Guid userId, string title, string? description = null)
+    public CreateToDoListCommand(Guid accountId, string title, string? description = null)
     {
-        UserId = userId;
+        AccountId = accountId;
         Title = title;
         Description = description;
     }

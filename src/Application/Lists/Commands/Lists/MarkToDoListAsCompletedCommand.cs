@@ -9,11 +9,11 @@ namespace Application.Lists.Commands.Lists;
 public sealed class MarkToDoListAsCompletedCommand : IRequest<bool>
 {
     public Guid ListId { get; }
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
-    public MarkToDoListAsCompletedCommand(Guid listId, Guid userId)
+    public MarkToDoListAsCompletedCommand(Guid listId, Guid accountId)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }
