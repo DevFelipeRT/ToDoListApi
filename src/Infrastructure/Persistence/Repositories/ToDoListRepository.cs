@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Domain.Lists;
-using Domain.Lists.Repositories;
-using Domain.Lists.ValueObjects;
 using Domain.Accounts.ValueObjects;
+using Domain.Lists.Entities;
+using Domain.Lists.ValueObjects;
+using Domain.Lists.Repositories;
 
 namespace Infrastructure.Persistence.Repositories;
 
@@ -44,30 +44,30 @@ public sealed class ToDoListRepository : IToDoListRepository
     }
 
     /// <summary>
-    /// Retrieves all lists owned by the given user (read-only).
+    /// Retrieves all lists owned by the given account (read-only).
     /// Includes the EF-only backing collection for items.
     /// </summary>
-    public async Task<IReadOnlyCollection<ToDoList>> GetAllByUserAsync(
-        AccountId userId,
+    public async Task<IReadOnlyCollection<ToDoList>> GetAllByAccountAsync(
+        AccountId accountId,
         CancellationToken cancellationToken)
     {
         return await _context.ToDoLists
             .AsNoTracking()
             .Include(l => l.ItemsForEfCore)
-            .Where(l => l.UserId == userId)
+            .Where(l => l.AccountId == accountId)
             .ToListAsync(cancellationToken);
     }
 
     /// <summary>
-    /// Retrieves only the identifiers of lists owned by the given user (read-only).
+    /// Retrieves only the identifiers of lists owned by the given account (read-only).
     /// </summary>
-    public async Task<IReadOnlyList<ToDoListId>> GetIdsByUserAsync(
-        AccountId userId,
+    public async Task<IReadOnlyList<ToDoListId>> GetIdsByAccountAsync(
+        AccountId accountId,
         CancellationToken cancellationToken)
     {
         return await _context.ToDoLists
             .AsNoTracking()
-            .Where(l => l.UserId == userId)
+            .Where(l => l.AccountId == accountId)
             .Select(l => l.Id)
             .ToListAsync(cancellationToken);
     }
@@ -118,18 +118,18 @@ public sealed class ToDoListRepository : IToDoListRepository
 
     /// <summary>
     /// Retrieves a single item by its identifier, ensuring that it belongs to the given list
-    /// and that the list is owned by the given user (read-only).
+    /// and that the list is owned by the given account (read-only).
     /// </summary>
     public async Task<ToDoItem?> GetItemByIdAsync(
         ToDoListId listId,
         ToDoItemId itemId,
-        AccountId userId,
+        AccountId accountId,
         CancellationToken cancellationToken)
     {
         return await _context.ToDoItems
             .AsNoTracking()
             .Where(i => i.Id == itemId && EF.Property<ToDoListId>(i, "ListId") == listId)
-            .Where(_ => _context.ToDoLists.Any(l => l.Id == listId && l.UserId == userId))
+            .Where(_ => _context.ToDoLists.Any(l => l.Id == listId && l.AccountId == accountId))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -173,16 +173,16 @@ public sealed class ToDoListRepository : IToDoListRepository
     }
 
     /// <summary>
-    /// Retrieves all items for a given list owned by the given user (read-only).
-    /// Returns an empty collection when the list does not exist or is not owned by the user.
+    /// Retrieves all items for a given list owned by the given account (read-only).
+    /// Returns an empty collection when the list does not exist or is not owned by the account.
     /// </summary>
-    public async Task<IReadOnlyCollection<ToDoItem>> GetAllItemsByListIdAndUserAsync(
+    public async Task<IReadOnlyCollection<ToDoItem>> GetAllItemsByListIdAndAccountAsync(
         ToDoListId listId,
-        AccountId userId,
+        AccountId accountId,
         CancellationToken cancellationToken)
     {
         var exists = await _context.ToDoLists
-            .AnyAsync(l => l.Id == listId && l.UserId == userId, cancellationToken);
+            .AnyAsync(l => l.Id == listId && l.AccountId == accountId, cancellationToken);
 
         if (!exists)
             return Array.Empty<ToDoItem>();
