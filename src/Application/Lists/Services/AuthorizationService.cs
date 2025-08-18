@@ -2,9 +2,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Domain.Accounts.ValueObjects;
+using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
-using Domain.Lists;
 using Domain.Lists.Services.Interfaces;
 
 namespace Application.Lists.Services;
@@ -24,15 +24,15 @@ public sealed class AuthorizationService : IAuthorizationService
 
 
     /// <inheritdoc />
-    public async Task AssertUserListAccessAsync(AccountId userId, ToDoListId listId, CancellationToken cancellationToken)
+    public async Task AssertAccountListAccessAsync(AccountId accountId, ToDoListId listId, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(accountId);
         ArgumentNullException.ThrowIfNull(listId);
 
         var list = await RetrieveListAsync(listId, cancellationToken);
 
-        if (!list.UserId.Equals(userId))
-            throw new UnauthorizedAccessException("User does not have permission to access or modify this list.");
+        if (!list.AccountId.Equals(accountId))
+            throw new UnauthorizedAccessException("The account does not have permission to access or modify this list.");
     }
 
     private async Task<ToDoList> RetrieveListAsync(ToDoListId listId, CancellationToken cancellationToken)

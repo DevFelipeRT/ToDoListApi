@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Domain.Lists;
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Services.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace Application.Lists.Services
 {
