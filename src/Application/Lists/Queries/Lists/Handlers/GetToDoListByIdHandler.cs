@@ -1,17 +1,16 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Application.Lists.Queries.Lists;
-using Application.Lists.DTOs;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Services.Interfaces;
+using Application.Lists.DTOs;
 
 namespace Application.Lists.Queries.Lists.Handlers;
 
 /// <summary>
-/// Handles the query to retrieve a To-Do list by its unique identifier and user.
+/// Handles the query to retrieve a To-Do list by its unique identifier and account.
 /// </summary>
 public sealed class GetToDoListByIdHandler : IRequestHandler<GetToDoListByIdQuery, ToDoListDto?>
 {
@@ -32,9 +31,9 @@ public sealed class GetToDoListByIdHandler : IRequestHandler<GetToDoListByIdQuer
     public async Task<ToDoListDto?> Handle(GetToDoListByIdQuery request, CancellationToken cancellationToken)
     {
         var listId = new ToDoListId(request.ListId);
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
         var toDoList = await _toDoListRepository.GetByIdAsync(listId, cancellationToken);
 

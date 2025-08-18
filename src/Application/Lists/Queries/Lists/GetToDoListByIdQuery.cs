@@ -5,7 +5,7 @@ using Application.Lists.DTOs;
 namespace Application.Lists.Queries.Lists;
 
 /// <summary>
-/// Query to retrieve a To-Do list by its unique identifier and user.
+/// Query to retrieve a To-Do list by its unique identifier and account.
 /// </summary>
 public sealed class GetToDoListByIdQuery : IRequest<ToDoListDto?>
 {
@@ -15,18 +15,18 @@ public sealed class GetToDoListByIdQuery : IRequest<ToDoListDto?>
     public Guid ListId { get; }
 
     /// <summary>
-    /// Gets the unique identifier of the user.
+    /// Gets the unique identifier of the account.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GetToDoListByIdQuery"/> class.
     /// </summary>
     /// <param name="listId">The unique identifier of the list.</param>
-    /// <param name="userId">The unique identifier of the user.</param>
-    public GetToDoListByIdQuery(Guid listId, Guid userId)
+    /// <param name="accountId">The unique identifier of the account.</param>
+    public GetToDoListByIdQuery(Guid listId, Guid accountId)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }
