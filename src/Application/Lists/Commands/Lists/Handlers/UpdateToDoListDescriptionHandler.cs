@@ -12,7 +12,7 @@ namespace Application.Lists.Commands.Lists.Handlers;
 
 /// <summary>
 /// Handles the command to update the title of a To-Do list.
-/// Ensures aggregate existence, user authorization, and value object encapsulation.
+/// Ensures aggregate existence, account authorization, and value object encapsulation.
 /// </summary>
 public sealed class UpdateToDoListDescriptionHandler : IRequestHandler<UpdateToDoListDescriptionCommand, bool>
 {
@@ -28,11 +28,11 @@ public sealed class UpdateToDoListDescriptionHandler : IRequestHandler<UpdateToD
     public async Task<bool> Handle(UpdateToDoListDescriptionCommand request, CancellationToken cancellationToken)
     {
         // Convert raw IDs to value objects
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
         var listId = new ToDoListId(request.ListId);
         var newDescription = request.NewDescription != null ? new Description(request.NewDescription) : null;
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
         var list = await _listRepository.GetByIdAsync(listId, cancellationToken) ?? throw new InvalidOperationException("List not found.");
 

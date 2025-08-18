@@ -12,7 +12,7 @@ namespace Application.Lists.Commands.Lists.Handlers;
 
 /// <summary>
 /// Handles the command to mark a To-Do list as completed.
-/// Ensures aggregate existence, user authorization, and state update.
+/// Ensures aggregate existence, account authorization, and state update.
 /// </summary>
 public sealed class MarkToDoListAsCompletedHandler : IRequestHandler<MarkToDoListAsCompletedCommand, bool>
 {
@@ -28,10 +28,10 @@ public sealed class MarkToDoListAsCompletedHandler : IRequestHandler<MarkToDoLis
     public async Task<bool> Handle(MarkToDoListAsCompletedCommand request, CancellationToken cancellationToken)
     {
         // Convert raw IDs to value objects
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
         var listId = new ToDoListId(request.ListId);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
         var list = await _listRepository.GetByIdAsync(listId, cancellationToken) ?? throw new InvalidOperationException("List not found.");
         
