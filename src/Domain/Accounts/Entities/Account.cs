@@ -1,3 +1,4 @@
+// Domain/Accounts/Entities/Account.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,10 +9,6 @@ using Domain.Accounts.ValueObjects;
 
 namespace Domain.Accounts.Entities;
 
-/// <summary>
-/// Aggregate root representing an account with credentials, activation lifecycle, and role-based authorization.
-/// Raw token secrets are never stored; only activation token hashes are handled.
-/// </summary>
 public sealed class Account : AggregateRoot
 {
     public AccountId Id { get; private set; } = null!;
@@ -20,13 +17,13 @@ public sealed class Account : AggregateRoot
     public AccountName Name { get; private set; } = null!;
     public string PasswordHash { get; private set; } = string.Empty;
 
-    /// <summary>Creation timestamp (UTC).</summary>
+    /// <summary>UTC creation instant.</summary>
     public DateTimeOffset CreatedAt { get; private set; }
 
-    /// <summary>Last successful sign-in (UTC), if any.</summary>
+    /// <summary>UTC instant of the last successful sign-in, if any.</summary>
     public DateTimeOffset? LastLoginAt { get; private set; }
 
-    /// <summary>Activation timestamp (UTC), if the account is active.</summary>
+    /// <summary>UTC instant when the account became active, if active.</summary>
     public DateTimeOffset? ActivatedAt { get; private set; }
 
     private readonly List<Role> _roles = new();
@@ -54,7 +51,7 @@ public sealed class Account : AggregateRoot
         ActivatedAt = activatedAt;
     }
 
-    /// <summary>Creates a new pending account.</summary>
+    /// <summary>Creates a new pending account and raises <see cref="AccountRegistered"/>.</summary>
     public static Account Create(
         AccountEmail email,
         AccountUsername username,
@@ -62,13 +59,11 @@ public sealed class Account : AggregateRoot
         string passwordHash)
     {
         var account = new Account(AccountId.New(), email, username, name, passwordHash);
-
         account.Raise(new AccountRegistered(account.Id, DateTimeOffset.UtcNow));
-
         return account;
     }
 
-    /// <summary>Marks the account as active at the given instant. Idempotent.</summary>
+    /// <summary>Marks the account as active at the given instant (idempotent).</summary>
     public void Activate(DateTimeOffset whenUtc)
     {
         if (ActivatedAt is null) ActivatedAt = whenUtc;
@@ -78,7 +73,9 @@ public sealed class Account : AggregateRoot
     public void Deactivate() => ActivatedAt = null;
 
     /// <summary>
-    /// Creates a new activation token for this account. By default, any non-finalized token is revoked first.
+    /// Issues a new activation token. Optionally revokes all currently active tokens first.
+    /// Active = not revoked and not expired at <paramref name="now"/>.
+    /// Expired tokens are not revoked by default.
     /// </summary>
     public ActivationToken CreateActivationToken(
         string hash,
@@ -88,11 +85,11 @@ public sealed class Account : AggregateRoot
     {
         if (revokeExistingFirst)
         {
-            RevokeAllNonFinalizedTokens(now, RevocationReason.Reissued);
+            RevokeAllActiveTokens(now, RevocationReason.Reissued);
         }
-        else if (HasNonFinalizedToken())
+        else if (HasActiveToken(now))
         {
-            throw new InvalidOperationException("There is an unfinalized activation token for this account.");
+            throw new InvalidOperationException("There is an active activation token for this account.");
         }
 
         var token = ActivationToken.Create(Id, hash, now, timeToLive);
@@ -101,12 +98,12 @@ public sealed class Account : AggregateRoot
     }
 
     /// <summary>
-    /// Activates the account using a token that belongs to this aggregate.
-    /// The caller must validate the raw secret against the token hash before invoking this method.
+    /// Activates the account using an owned token. Validates ownership and activity window,
+    /// then revokes the token with <see cref="RevocationReason.UsedForActivation"/>.
     /// </summary>
     public void ActivateWithToken(ActivationToken token, DateTimeOffset whenUtc)
     {
-        if (token == null) throw new ArgumentNullException(nameof(token));
+        if (token is null) throw new ArgumentNullException(nameof(token));
         if (token.AccountId != Id) throw new InvalidOperationException("Token does not belong to this account.");
         if (!token.IsActive(whenUtc)) throw new InvalidOperationException("Token is revoked or expired.");
 
@@ -114,61 +111,75 @@ public sealed class Account : AggregateRoot
         Activate(whenUtc);
     }
 
-    /// <summary>Revokes all non-finalized tokens.</summary>
-    public void RevokeAllNonFinalizedTokens(DateTimeOffset whenUtc, RevocationReason reason)
+    /// <summary>Revokes all tokens that are active at <paramref name="whenUtc"/>.</summary>
+    public void RevokeAllActiveTokens(DateTimeOffset whenUtc, RevocationReason reason)
+    {
+        foreach (var t in _activationTokens)
+            if (t.IsActive(whenUtc)) t.Revoke(whenUtc, reason);
+    }
+
+    /// <summary>
+    /// Revokes all non-revoked tokens, including those already expired.
+    /// Use for explicit audit/policy; not required for normal issuance.
+    /// </summary>
+    public void RevokeAllNonRevokedTokens(DateTimeOffset whenUtc, RevocationReason reason)
     {
         foreach (var t in _activationTokens)
             if (!t.IsRevoked) t.Revoke(whenUtc, reason);
     }
 
-    /// <summary>Returns true if there is any non-finalized token.</summary>
-    public bool HasNonFinalizedToken() => _activationTokens.Any(t => !t.IsRevoked);
+    /// <summary>Returns true if there is any token active at <paramref name="now"/>.</summary>
+    public bool HasActiveToken(DateTimeOffset now)
+        => _activationTokens.Any(t => t.IsActive(now));
 
-    /// <summary>Returns an active token by identifier or null if none matches.</summary>
+    /// <summary>Returns true if there is any token finalized at <paramref name="now"/> (revoked or expired).</summary>
+    public bool HasFinalizedToken(DateTimeOffset now)
+        => _activationTokens.Any(t => t.IsFinalized(now));
+
+    /// <summary>Returns true if there is any token that is not revoked (expired tokens still count as non-revoked).</summary>
+    public bool HasNonRevokedToken()
+        => _activationTokens.Any(t => !t.IsRevoked);
+
+    /// <summary>Returns an active token by identifier or null if none matches at <paramref name="now"/>.</summary>
     public ActivationToken? FindActiveTokenById(Guid tokenId, DateTimeOffset now)
         => _activationTokens.FirstOrDefault(t => t.Id == tokenId && t.IsActive(now));
 
-    /// <summary>Updates the display name.</summary>
+    /// <summary>Returns a finalized token by identifier or null if none matches at <paramref name="now"/>.</summary>
+    public ActivationToken? FindFinalizedTokenById(Guid tokenId, DateTimeOffset now)
+        => _activationTokens.FirstOrDefault(t => t.Id == tokenId && t.IsFinalized(now));
+
     public void UpdateName(AccountName newName)
         => Name = newName ?? throw new ArgumentNullException(nameof(newName));
 
-    /// <summary>Updates the e-mail address.</summary>
     public void UpdateEmail(AccountEmail newEmail)
         => Email = newEmail ?? throw new ArgumentNullException(nameof(newEmail));
 
-    /// <summary>Updates the username.</summary>
     public void UpdateUsername(AccountUsername newUsername)
         => Username = newUsername ?? throw new ArgumentNullException(nameof(newUsername));
 
-    /// <summary>Sets the last successful sign-in to now (UTC).</summary>
     public void UpdateLastLogin() => LastLoginAt = DateTimeOffset.UtcNow;
 
-    /// <summary>Replaces the password hash.</summary>
     public void UpdatePassword(string newPasswordHash)
         => PasswordHash = newPasswordHash ?? throw new ArgumentNullException(nameof(newPasswordHash));
 
-    /// <summary>Verifies a plain password using the provided hasher.</summary>
     public bool ValidatePassword(string plainPassword, IPasswordHasher hasher)
     {
-        if (hasher == null) throw new ArgumentNullException(nameof(hasher));
+        if (hasher is null) throw new ArgumentNullException(nameof(hasher));
         return hasher.VerifyPassword(PasswordHash, plainPassword);
     }
 
-    /// <summary>Assigns a role to the account. Idempotent.</summary>
     public void AssignRole(Role role)
     {
-        if (role == null) throw new ArgumentNullException(nameof(role));
+        if (role is null) throw new ArgumentNullException(nameof(role));
         if (_roles.Any(r => r.Id == role.Id)) return;
         _roles.Add(role);
     }
 
-    /// <summary>Removes a role from the account.</summary>
     public void RemoveRole(Role role)
     {
-        if (role == null) throw new ArgumentNullException(nameof(role));
+        if (role is null) throw new ArgumentNullException(nameof(role));
         _roles.RemoveAll(r => r.Id == role.Id);
     }
 
-    /// <summary>Returns true if the account has the given role name.</summary>
     public bool HasRole(string roleName) => _roles.Any(r => r.NameEquals(roleName));
 }

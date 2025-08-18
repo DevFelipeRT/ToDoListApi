@@ -2,7 +2,6 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using Domain.Accounts.Entities;
-using Domain.Accounts.ValueObjects;
 
 namespace Application.Accounts.Services;
 
@@ -22,23 +21,6 @@ namespace Application.Accounts.Services;
 public static class ActivationTokenGenerator
 {
     /// <summary>
-    /// Creates a new activation token for the given account and returns both:
-    /// - The domain entity (hash persisted by the domain).
-    /// - The raw token (to be sent to the account and NEVER persisted).
-    /// </summary>
-    /// <param name="accountId">Owning account identifier.</param>
-    /// <param name="now">Clock reference for issuance.</param>
-    /// <param name="timeToLive">Token lifetime; must be greater than zero.</param>
-    /// <returns>(Token, RawToken)</returns>
-    public static (ActivationToken Token, string RawToken) Create(AccountId accountId, DateTimeOffset now, TimeSpan timeToLive)
-    {
-        var raw = GenerateRawToken();
-        var hash = ComputeHash(raw);
-        var token = ActivationToken.Create(accountId, hash, now, timeToLive);
-        return (token, raw);
-    }
-
-    /// <summary>
     /// Verifies whether the account-provided <paramref name="rawToken"/> matches the <paramref name="token"/>'s hash
     /// using a constant-time comparison. No state mutation occurs.
     /// </summary>
@@ -47,32 +29,6 @@ public static class ActivationTokenGenerator
     /// <returns>True if the hashes match; otherwise false.</returns>
     public static bool VerifyRaw(ActivationToken token, string rawToken)
         => VerifyRaw(rawToken, token.Hash);
-
-    /// <summary>
-    /// Attempts to verify and consume the token atomically:
-    /// - Fails fast if token is expired or already consumed at <paramref name="when"/>.
-    /// - Compares the derived hash from <paramref name="rawToken"/> to the stored hash in constant time.
-    /// - If valid and active, consumes the token (single-use).
-    /// </summary>
-    /// <param name="token">Persisted activation token entity.</param>
-    /// <param name="rawToken">Raw token presented by the account.</param>
-    /// <param name="when">Clock reference used for validation and stamping consumption.</param>
-    /// <returns>True if the token was valid and transitioned to consumed; otherwise false.</returns>
-    public static bool VerifyAndConsume(ActivationToken token, string rawToken, DateTimeOffset when)
-    {
-        // Guard on activity window first (cheap checks, no hashing if already invalid).
-        if (!token.IsActive(when))
-            return false;
-
-        // Verify in constant time.
-        if (!VerifyRaw(token, rawToken))
-            return false;
-
-        // Idempotent, non-throwing transition.
-        token.Revoke(when, RevocationReason.Reissued);
-
-        return token.IsRevoked;
-    }
 
     /// <summary>
     /// Generates a 256-bit (32 bytes) cryptographically strong random token encoded as Base64Url without padding.
