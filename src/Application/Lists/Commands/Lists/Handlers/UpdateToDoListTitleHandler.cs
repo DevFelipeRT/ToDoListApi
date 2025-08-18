@@ -7,6 +7,7 @@ using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.Services.Interfaces;
 using Domain.Lists.Policies;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Lists.Handlers;
 
@@ -17,12 +18,14 @@ namespace Application.Lists.Commands.Lists.Handlers;
 public sealed class UpdateToDoListTitleHandler : IRequestHandler<UpdateToDoListTitleCommand, bool>
 {
     private readonly IToDoListRepository _listRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationService _authorizationService;
     private readonly IToDoListUniquenessPolicy _uniquenessChecker;
 
-    public UpdateToDoListTitleHandler(IToDoListRepository listRepository, IAuthorizationService authorizationService, IToDoListUniquenessPolicy uniquenessChecker)
+    public UpdateToDoListTitleHandler(IToDoListRepository listRepository, IUnitOfWork unitOfWork, IAuthorizationService authorizationService, IToDoListUniquenessPolicy uniquenessChecker)
     {
         _listRepository = listRepository;
+        _unitOfWork = unitOfWork;
         _authorizationService = authorizationService;
         _uniquenessChecker = uniquenessChecker;
     }
@@ -44,6 +47,9 @@ public sealed class UpdateToDoListTitleHandler : IRequestHandler<UpdateToDoListT
         list.UpdateTitle(newTitle);
         
         await _listRepository.UpdateAsync(list, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
         return true;
     }
 }

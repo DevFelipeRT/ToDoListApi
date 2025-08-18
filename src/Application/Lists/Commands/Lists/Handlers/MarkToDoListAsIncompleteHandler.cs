@@ -7,6 +7,7 @@ using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.Services.Interfaces;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Lists.Handlers;
 
@@ -17,11 +18,13 @@ namespace Application.Lists.Commands.Lists.Handlers;
 public sealed class MarkToDoListAsIncompleteHandler : IRequestHandler<MarkToDoListAsIncompleteCommand, bool>
 {
     private readonly IToDoListRepository _listRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationService _authorizationService;
 
-    public MarkToDoListAsIncompleteHandler(IToDoListRepository listRepository, IAuthorizationService authorizationService)
+    public MarkToDoListAsIncompleteHandler(IToDoListRepository listRepository, IUnitOfWork unitOfWork, IAuthorizationService authorizationService)
     {
         _listRepository = listRepository;
+        _unitOfWork = unitOfWork;
         _authorizationService = authorizationService;
     }
 
@@ -38,6 +41,9 @@ public sealed class MarkToDoListAsIncompleteHandler : IRequestHandler<MarkToDoLi
         list.MarkAsIncomplete();
         
         await _listRepository.UpdateAsync(list, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
         return true;
     }
 }

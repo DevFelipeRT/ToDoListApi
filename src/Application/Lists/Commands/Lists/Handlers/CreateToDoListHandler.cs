@@ -7,6 +7,7 @@ using Domain.Lists.Entities;
 using Domain.Lists.Policies;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Lists.Handlers;
 
@@ -17,13 +18,16 @@ namespace Application.Lists.Commands.Lists.Handlers;
 public sealed class CreateToDoListHandler : IRequestHandler<CreateToDoListCommand, Guid>
 {
     private readonly IToDoListRepository _listRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IToDoListUniquenessPolicy _uniquenessChecker;
 
     public CreateToDoListHandler(
         IToDoListRepository listRepository,
-        IToDoListUniquenessPolicy uniquenessChecker)
+        IToDoListUniquenessPolicy uniquenessChecker,
+        IUnitOfWork unitOfWork)
     {
         _listRepository = listRepository;
+        _unitOfWork = unitOfWork;
         _uniquenessChecker = uniquenessChecker;
     }
 
@@ -41,7 +45,8 @@ public sealed class CreateToDoListHandler : IRequestHandler<CreateToDoListComman
         var list = new ToDoList(accountId, title, description);
 
         // Persist list
-        await _listRepository.AddAsync(list, cancellationToken);
+        _listRepository.Add(list);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return list.Id.Value;
     }
