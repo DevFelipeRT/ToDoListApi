@@ -16,9 +16,9 @@ public sealed class CreateToDoItemCommand : IRequest<Guid>
     public Guid ListId { get; init; }
 
     /// <summary>
-    /// Gets the unique identifier of the user attempting to create the item.
+    /// Gets the unique identifier of the account attempting to create the item.
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid AccountId { get; init; }
 
     /// <summary>
     /// Gets the title of the To-Do item to be created.
@@ -34,13 +34,13 @@ public sealed class CreateToDoItemCommand : IRequest<Guid>
     /// Initializes a new instance of the <see cref="CreateToDoItemCommand"/> class.
     /// </summary>
     /// <param name="listId">The unique identifier of the list in which to create the item.</param>
-    /// <param name="userId">The unique identifier of the user creating the item.</param>
+    /// <param name="accountId">The unique identifier of the account creating the item.</param>
     /// <param name="title">The title of the new To-Do item.</param>
     /// <param name="dueDate">The optional due date of the item.</param>
-    public CreateToDoItemCommand(Guid listId, Guid userId, string title, DateTime? dueDate = null)
+    public CreateToDoItemCommand(Guid listId, Guid accountId, string title, DateTime? dueDate = null)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
         Title = title;
         DueDate = dueDate;
     }

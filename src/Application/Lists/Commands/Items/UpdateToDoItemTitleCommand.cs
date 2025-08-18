@@ -20,9 +20,9 @@ public sealed class UpdateToDoItemTitleCommand : IRequest<bool>
     public Guid ItemId { get; }
 
     /// <summary>
-    /// Gets the identifier of the user performing the update.
+    /// Gets the identifier of the account performing the update.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Gets the new raw title input for the To-Do item.
@@ -35,13 +35,13 @@ public sealed class UpdateToDoItemTitleCommand : IRequest<bool>
     /// </summary>
     /// <param name="listId">The identifier of the parent list.</param>
     /// <param name="itemId">The identifier of the item to be updated.</param>
-    /// <param name="userId">The identifier of the user performing the update.</param>
+    /// <param name="accountId">The identifier of the account performing the update.</param>
     /// <param name="newTitle">The new title string.</param>
-    public UpdateToDoItemTitleCommand(Guid listId, Guid itemId, Guid userId, string newTitle)
+    public UpdateToDoItemTitleCommand(Guid listId, Guid itemId, Guid accountId, string newTitle)
     {
         ListId = listId;
         ItemId = itemId;
-        UserId = userId;
+        AccountId = accountId;
         NewTitle = newTitle;
     }
 }

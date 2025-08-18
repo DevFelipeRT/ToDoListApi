@@ -20,20 +20,20 @@ public sealed class DeleteToDoItemCommand : IRequest<bool>
     public Guid ItemId { get; }
 
     /// <summary>
-    /// Gets the identifier of the user performing the operation.
+    /// Gets the identifier of the account performing the operation.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeleteToDoItemCommand"/> class.
     /// </summary>
     /// <param name="listId">The identifier of the parent To-Do list.</param>
     /// <param name="itemId">The identifier of the item to delete.</param>
-    /// <param name="userId">The identifier of the user performing the operation.</param>
-    public DeleteToDoItemCommand(Guid listId, Guid itemId, Guid userId)
+    /// <param name="accountId">The identifier of the account performing the operation.</param>
+    public DeleteToDoItemCommand(Guid listId, Guid itemId, Guid accountId)
     {
         ListId = listId;
         ItemId = itemId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }

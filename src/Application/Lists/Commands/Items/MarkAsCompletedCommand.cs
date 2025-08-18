@@ -21,20 +21,20 @@ public sealed class MarkAsCompletedCommand : IRequest<bool>
     public Guid ItemId { get; }
 
     /// <summary>
-    /// Gets the identifier of the user performing the operation.
+    /// Gets the identifier of the account performing the operation.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MarkAsCompletedCommand"/> class.
     /// </summary>
     /// <param name="listId">The identifier of the list containing the item.</param>
     /// <param name="itemId">The identifier of the item to mark as completed.</param>
-    /// <param name="userId">The identifier of the user performing the operation.</param>
-    public MarkAsCompletedCommand(Guid listId, Guid itemId, Guid userId)
+    /// <param name="accountId">The identifier of the account performing the operation.</param>
+    public MarkAsCompletedCommand(Guid listId, Guid itemId, Guid accountId)
     {
         ListId = listId;
         ItemId = itemId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }

@@ -9,9 +9,9 @@ namespace Application.Lists.Commands.Items;
 public sealed class TransferItemCommand : IRequest
 {
     /// <summary>
-    /// Gets the unique identifier of the user performing the transfer.
+    /// Gets the unique identifier of the account performing the transfer.
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid AccountId { get; init; }
 
     /// <summary>
     /// Gets the unique identifier of the source to-do list.

@@ -6,7 +6,7 @@ namespace Application.Lists.Commands.Items;
 /// <summary>
 /// Command to mark a specific To-Do item as incomplete within its parent list.
 /// This operation reverses the completion state previously set, 
-/// with user authorization and aggregate context.
+/// with account authorization and aggregate context.
 /// </summary>
 public sealed class MarkAsIncompleteCommand : IRequest<bool>
 {
@@ -21,20 +21,20 @@ public sealed class MarkAsIncompleteCommand : IRequest<bool>
     public Guid ItemId { get; }
 
     /// <summary>
-    /// Gets the identifier of the user performing the operation.
+    /// Gets the identifier of the account performing the operation.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MarkAsIncompleteCommand"/> class.
     /// </summary>
     /// <param name="listId">The identifier of the list that owns the item.</param>
     /// <param name="itemId">The identifier of the item to mark as incomplete.</param>
-    /// <param name="userId">The identifier of the user performing the operation.</param>
-    public MarkAsIncompleteCommand(Guid listId, Guid itemId, Guid userId)
+    /// <param name="accountId">The identifier of the account performing the operation.</param>
+    public MarkAsIncompleteCommand(Guid listId, Guid itemId, Guid accountId)
     {
         ListId = listId;
         ItemId = itemId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }

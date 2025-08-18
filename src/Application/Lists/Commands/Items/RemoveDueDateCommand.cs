@@ -19,7 +19,7 @@ public sealed class RemoveDueDateCommand : IRequest
     public Guid ItemId { get; init; }
 
     /// <summary>
-    /// Gets the identifier of the user performing the operation.
+    /// Gets the identifier of the account performing the operation.
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid AccountId { get; init; }
 }
