@@ -6,6 +6,7 @@ using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Policies.Interfaces;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Commands.Handlers;
 
@@ -15,13 +16,16 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class UpdateAccountEmailHandler : IRequestHandler<UpdateAccountEmailCommand>
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAccountUniquenessPolicy _uniquenessChecker;
 
     public UpdateAccountEmailHandler(
         IAccountRepository accountRepository,
+        IUnitOfWork unitOfWork,
         IAccountUniquenessPolicy uniquenessChecker)
     {
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
         _uniquenessChecker = uniquenessChecker;
     }
 
@@ -34,11 +38,12 @@ public sealed class UpdateAccountEmailHandler : IRequestHandler<UpdateAccountEma
         var account = RetrieveAccount(accountId, cancellationToken);
 
         await ValidateNewEmailUniqueness(newEmail, cancellationToken);
-        
+
         account.UpdateEmail(newEmail);
 
         // Persist changes
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+        _accountRepository.Update(account);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private Account RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)

@@ -5,6 +5,7 @@ using MediatR;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Commands.Handlers;
 
@@ -14,10 +15,12 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class UpdateAccountNameHandler : IRequestHandler<UpdateAccountNameCommand>
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UpdateAccountNameHandler(IAccountRepository accountRepository)
+    public UpdateAccountNameHandler(IAccountRepository accountRepository, IUnitOfWork unitOfWork)
     {
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task Handle(UpdateAccountNameCommand command, CancellationToken cancellationToken)
@@ -31,7 +34,8 @@ public sealed class UpdateAccountNameHandler : IRequestHandler<UpdateAccountName
         account.UpdateName(newName);
 
         // Persist changes
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+        _accountRepository.Update(account);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
     
     private Account RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)

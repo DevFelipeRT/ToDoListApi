@@ -5,6 +5,7 @@ using MediatR;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Commands.Handlers;
 
@@ -14,10 +15,12 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class ActivateAccountHandler : IRequestHandler<ActivateAccountCommand>
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ActivateAccountHandler(IAccountRepository accountRepository)
+    public ActivateAccountHandler(IAccountRepository accountRepository, IUnitOfWork unitOfWork)
     {
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task Handle(ActivateAccountCommand command, CancellationToken cancellationToken)
@@ -26,11 +29,12 @@ public sealed class ActivateAccountHandler : IRequestHandler<ActivateAccountComm
         var accountId = AccountId.FromGuid(command.AccountId);
 
         var account = RetrieveAccount(accountId, cancellationToken);
-        
+
         account.Activate(new DateTimeOffset(DateTime.UtcNow));
 
         // Persist changes
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+        _accountRepository.Update(account);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
     
     private Account RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)

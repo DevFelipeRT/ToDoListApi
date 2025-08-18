@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Abstractions.Persistence;
 using Application.Accounts.Abstractions;
 using Application.Accounts.Services;
 using Application.Notifications.Email;
@@ -13,15 +14,18 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class ResendActivationHandler : IRequestHandler<ResendActivationCommand>
 {
     private readonly IAccountRepository _accounts;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IEmailSender _email;
     private readonly IActivationLinkBuilder _linkBuilder;
 
     public ResendActivationHandler(
         IAccountRepository accounts,
+        IUnitOfWork unitOfWork,
         IEmailSender email,
         IActivationLinkBuilder linkBuilder)
     {
         _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _email = email ?? throw new ArgumentNullException(nameof(email));
         _linkBuilder = linkBuilder ?? throw new ArgumentNullException(nameof(linkBuilder));
     }
@@ -37,7 +41,7 @@ public sealed class ResendActivationHandler : IRequestHandler<ResendActivationCo
         var now = DateTimeOffset.UtcNow;
 
         account.CreateActivationToken(hash, now, TimeSpan.FromHours(24), revokeExistingFirst: true);
-        await _accounts.UpdateAsync(account, cancellationToken);
+        _accounts.Update(account);
 
         var link = _linkBuilder.Build(raw.ToString());
 
@@ -49,5 +53,7 @@ public sealed class ResendActivationHandler : IRequestHandler<ResendActivationCo
             textBody: $"Activate your account: {link}{Environment.NewLine}Token: {raw}");
 
         await _email.SendAsync(message, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

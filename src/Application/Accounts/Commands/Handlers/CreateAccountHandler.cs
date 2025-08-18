@@ -7,6 +7,7 @@ using Domain.Accounts.Services.Interfaces;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Policies.Interfaces;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Commands.Handlers;
 
@@ -17,17 +18,20 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class CreateAccountHandler : IRequestHandler<CreateAccountCommand, Guid>
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAccountUniquenessPolicy _uniquenessChecker;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IPasswordPolicy _passwordPolicyValidator;
 
     public CreateAccountHandler(
         IAccountRepository accountRepository,
+        IUnitOfWork unitOfWork,
         IAccountUniquenessPolicy uniquenessChecker,
         IPasswordHasher passwordHasher,
         IPasswordPolicy passwordPolicyValidator)
     {
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
         _uniquenessChecker = uniquenessChecker;
         _passwordHasher = passwordHasher;
         _passwordPolicyValidator = passwordPolicyValidator;
@@ -47,7 +51,9 @@ public sealed class CreateAccountHandler : IRequestHandler<CreateAccountCommand,
 
         var account = CreateAccountInstance(email, username, name, passwordHash);
 
-        await _accountRepository.AddAsync(account, cancellationToken);
+        _accountRepository.Add(account);
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return account.Id.Value;
     }

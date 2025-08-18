@@ -6,6 +6,7 @@ using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Policies.Interfaces;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Commands.Handlers;
 
@@ -15,13 +16,16 @@ namespace Application.Accounts.Commands.Handlers;
 public sealed class UpdateAccountUsernameHandler : IRequestHandler<UpdateAccountUsernameCommand>
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAccountUniquenessPolicy _uniquenessChecker;
 
     public UpdateAccountUsernameHandler(
         IAccountRepository accountRepository,
-        IAccountUniquenessPolicy uniquenessChecker)
+        IAccountUniquenessPolicy uniquenessChecker,
+        IUnitOfWork unitOfWork)
     {
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
         _uniquenessChecker = uniquenessChecker;
     }
 
@@ -38,7 +42,8 @@ public sealed class UpdateAccountUsernameHandler : IRequestHandler<UpdateAccount
         account.UpdateUsername(newUsername);
 
         // Persist changes
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+        _accountRepository.Update(account);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private Account RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)
