@@ -1,12 +1,13 @@
 using System.Reflection;
-using Application.Accounts.Services;
-using Application.Accounts.Services.Interfaces;
-using Application.Lists.Services;
-using Domain.Accounts.Services;
-using Domain.Accounts.Services.Interfaces;
-using Domain.Lists.Services;
-using Domain.Lists.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Domain.Accounts.Policies.Interfaces;
+using Domain.Accounts.Services.Interfaces;
+using Domain.Lists.Policies;
+using Domain.Lists.Services.Interfaces;
+using Domain.Lists.Services;
+using Application.Accounts.Services.Interfaces;
+using Application.Accounts.Services;
+using Application.Lists.Services;
 
 namespace Application;
 
@@ -27,12 +28,12 @@ public static class DependencyInjection
 
         // Dependency injection for domain services
         services.AddScoped<IAccountLockoutPolicy, AccountLockoutPolicy>();
-        services.AddScoped<IAccountUniquenessChecker, AccountUniquenessChecker>();
+        services.AddScoped<IAccountUniquenessPolicy, AccountUniquenessChecker>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IPasswordPolicyValidator, PasswordPolicyValidator>();
+        services.AddScoped<IPasswordPolicy, PasswordPolicy>();
         services.AddScoped<IReminderSchedulerService, ReminderSchedulerService>();
         services.AddScoped<IToDoListItemTransferService, ToDoListItemTransferService>();
-        services.AddScoped<IToDoListTitleUniquenessChecker, ToDoListTitleUniquenessChecker>();
+        services.AddScoped<IToDoListUniquenessPolicy, ToDoListUniquenessChecker>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         // Dependency injection for application services
