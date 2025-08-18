@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Domain.Accounts.Services.Interfaces;
+using Domain.Accounts.Policies.Interfaces;
 using Domain.Accounts.ValueObjects;
 
 namespace Application.Accounts.Services;

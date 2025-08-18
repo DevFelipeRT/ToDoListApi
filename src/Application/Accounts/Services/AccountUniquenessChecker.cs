@@ -1,30 +1,31 @@
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Repositories;
-using Domain.Accounts.Services.Interfaces;
+using Domain.Accounts.Policies.Interfaces;
+
 
 namespace Application.Accounts.Services;
 
 /// <summary>
-/// Implementation of account uniqueness validation using the user repository.
+/// Implementation of account uniqueness validation using the account repository.
 /// </summary>
-public sealed class AccountUniquenessChecker : IAccountUniquenessChecker
+public sealed class AccountUniquenessChecker : IAccountUniquenessPolicy
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IAccountRepository _accountRepository;
 
-    public AccountUniquenessChecker(IUserRepository userRepository)
+    public AccountUniquenessChecker(IAccountRepository accountRepository)
     {
-        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _accountRepository = accountRepository ?? throw new ArgumentNullException(nameof(accountRepository));
     }
 
     public async Task<bool> IsEmailUniqueAsync(AccountEmail email, CancellationToken cancellationToken)
     {
-        var existingUser = await _userRepository.GetByEmailAsync(email, cancellationToken);
-        return existingUser is null;
+        var existingAccount = await _accountRepository.GetByEmailAsync(email, cancellationToken);
+        return existingAccount is null;
     }
 
     public async Task<bool> IsUsernameUniqueAsync(AccountUsername username, CancellationToken cancellationToken)
     {
-        var existingUser = await _userRepository.GetByUsernameAsync(username, cancellationToken);
-        return existingUser is null;
+        var existingAccount = await _accountRepository.GetByUsernameAsync(username, cancellationToken);
+        return existingAccount is null;
     }
 }

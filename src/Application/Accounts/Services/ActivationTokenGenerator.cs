@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
-using Domain.Accounts;
+using Domain.Accounts.Entities;
 using Domain.Accounts.ValueObjects;
 
 namespace Application.Accounts.Services;
@@ -12,8 +12,8 @@ namespace Application.Accounts.Services;
 /// Responsibilities:
 /// - Generate high-entropy raw tokens (Base64Url, no padding).
 /// - Hash raw tokens using SHA-256 (uppercase hex) without ever persisting the raw value.
-/// - Issue <see cref="ActivationToken"/> instances via the domain factory, returning the raw token to the caller.
-/// - Validate user-presented raw tokens against persisted hashes using constant-time comparison.
+/// - Create <see cref="ActivationToken"/> instances via the domain factory, returning the raw token to the caller.
+/// - Validate account-presented raw tokens against persisted hashes using constant-time comparison.
 /// - Provide a convenience operation to verify-and-consume an active token.
 /// 
 /// This service contains no persistence or I/O concerns; orchestration belongs to the application layer,
@@ -22,28 +22,28 @@ namespace Application.Accounts.Services;
 public static class ActivationTokenGenerator
 {
     /// <summary>
-    /// Issues a new activation token for the given account and returns both:
+    /// Creates a new activation token for the given account and returns both:
     /// - The domain entity (hash persisted by the domain).
-    /// - The raw token (to be sent to the user and NEVER persisted).
+    /// - The raw token (to be sent to the account and NEVER persisted).
     /// </summary>
-    /// <param name="userId">Owning account identifier.</param>
+    /// <param name="accountId">Owning account identifier.</param>
     /// <param name="now">Clock reference for issuance.</param>
     /// <param name="timeToLive">Token lifetime; must be greater than zero.</param>
     /// <returns>(Token, RawToken)</returns>
-    public static (ActivationToken Token, string RawToken) Issue(AccountId userId, DateTimeOffset now, TimeSpan timeToLive)
+    public static (ActivationToken Token, string RawToken) Create(AccountId accountId, DateTimeOffset now, TimeSpan timeToLive)
     {
         var raw = GenerateRawToken();
         var hash = ComputeHash(raw);
-        var token = ActivationToken.Issue(userId, hash, now, timeToLive);
+        var token = ActivationToken.Create(accountId, hash, now, timeToLive);
         return (token, raw);
     }
 
     /// <summary>
-    /// Verifies whether the user-provided <paramref name="rawToken"/> matches the <paramref name="token"/>'s hash
+    /// Verifies whether the account-provided <paramref name="rawToken"/> matches the <paramref name="token"/>'s hash
     /// using a constant-time comparison. No state mutation occurs.
     /// </summary>
     /// <param name="token">Persisted activation token entity.</param>
-    /// <param name="rawToken">Raw token presented by the user.</param>
+    /// <param name="rawToken">Raw token presented by the account.</param>
     /// <returns>True if the hashes match; otherwise false.</returns>
     public static bool VerifyRaw(ActivationToken token, string rawToken)
         => VerifyRaw(rawToken, token.Hash);
@@ -55,7 +55,7 @@ public static class ActivationTokenGenerator
     /// - If valid and active, consumes the token (single-use).
     /// </summary>
     /// <param name="token">Persisted activation token entity.</param>
-    /// <param name="rawToken">Raw token presented by the user.</param>
+    /// <param name="rawToken">Raw token presented by the account.</param>
     /// <param name="when">Clock reference used for validation and stamping consumption.</param>
     /// <returns>True if the token was valid and transitioned to consumed; otherwise false.</returns>
     public static bool VerifyAndConsume(ActivationToken token, string rawToken, DateTimeOffset when)
@@ -69,7 +69,9 @@ public static class ActivationTokenGenerator
             return false;
 
         // Idempotent, non-throwing transition.
-        return token.TryConsume(when);
+        token.Revoke(when, RevocationReason.Reissued);
+
+        return token.IsRevoked;
     }
 
     /// <summary>
@@ -98,7 +100,7 @@ public static class ActivationTokenGenerator
     /// <summary>
     /// Verifies a raw token against a stored uppercase hex hash using constant-time comparison.
     /// </summary>
-    /// <param name="rawToken">Raw token provided by the user.</param>
+    /// <param name="rawToken">Raw token provided by the account.</param>
     /// <param name="storedHashHex">Uppercase hex representation of the stored hash.</param>
     public static bool VerifyRaw(string rawToken, string storedHashHex)
     {

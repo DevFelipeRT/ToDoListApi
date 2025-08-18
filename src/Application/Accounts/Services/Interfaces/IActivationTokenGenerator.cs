@@ -1,6 +1,6 @@
 using System;
 using Domain.Accounts.ValueObjects;
-using Domain.Accounts;
+using Domain.Accounts.Entities;
 
 namespace Application.Accounts.Services;
 
