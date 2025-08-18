@@ -7,6 +7,7 @@ using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.Services.Interfaces;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Items.Handlers;
 
@@ -17,13 +18,16 @@ namespace Application.Lists.Commands.Items.Handlers;
 public sealed class CreateToDoItemHandler : IRequestHandler<CreateToDoItemCommand, Guid>
 {
     private readonly IToDoListRepository _listRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationService _authorizationService;
 
     public CreateToDoItemHandler(
         IToDoListRepository listRepository,
+        IUnitOfWork unitOfWork,
         IAuthorizationService authorizationService)
     {
         _listRepository = listRepository;
+        _unitOfWork = unitOfWork;
         _authorizationService = authorizationService;
     }
 
@@ -46,6 +50,8 @@ public sealed class CreateToDoItemHandler : IRequestHandler<CreateToDoItemComman
 
         // Persist changes
         await _listRepository.UpdateAsync(list, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return item.Id.Value;
     }

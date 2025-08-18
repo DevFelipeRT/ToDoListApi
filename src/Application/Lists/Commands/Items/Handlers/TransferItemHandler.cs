@@ -7,6 +7,7 @@ using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.Services.Interfaces;
 using Domain.Accounts.Repositories;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Items.Handlers;
 
@@ -18,17 +19,20 @@ public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
 {
     private readonly IToDoListRepository _listRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationService _authorizationService;
     private readonly IToDoListItemTransferService _itemTransferService;
 
     public TransferItemHandler(
         IToDoListRepository listRepository,
         IAccountRepository accountRepository,
+        IUnitOfWork unitOfWork,
         IAuthorizationService authorizationService,
         IToDoListItemTransferService itemTransferService)
     {
         _listRepository = listRepository;
         _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
         _authorizationService = authorizationService;
         _itemTransferService = itemTransferService;
     }
@@ -62,5 +66,6 @@ public sealed class TransferItemHandler : IRequestHandler<TransferItemCommand>
         // Persist changes
         await _listRepository.UpdateAsync(sourceList, cancellationToken);
         await _listRepository.UpdateAsync(targetList, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

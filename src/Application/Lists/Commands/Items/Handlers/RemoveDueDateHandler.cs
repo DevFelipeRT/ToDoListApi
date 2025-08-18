@@ -5,6 +5,7 @@ using Domain.Accounts.ValueObjects;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.Services.Interfaces;
+using Application.Abstractions.Persistence;
 
 namespace Application.Lists.Commands.Items.Handlers;
 
@@ -15,11 +16,13 @@ namespace Application.Lists.Commands.Items.Handlers;
 public sealed class RemoveDueDateHandler : IRequestHandler<RemoveDueDateCommand>
 {
     private readonly IToDoListRepository _listRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationService _authorizationService;
 
-    public RemoveDueDateHandler(IToDoListRepository listRepository, IAuthorizationService authorizationService)
+    public RemoveDueDateHandler(IToDoListRepository listRepository, IUnitOfWork unitOfWork, IAuthorizationService authorizationService)
     {
         _listRepository = listRepository;
+        _unitOfWork = unitOfWork;
         _authorizationService = authorizationService;
     }
 
@@ -39,5 +42,7 @@ public sealed class RemoveDueDateHandler : IRequestHandler<RemoveDueDateCommand>
 
         // Persist changes
         await _listRepository.UpdateAsync(list, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }
