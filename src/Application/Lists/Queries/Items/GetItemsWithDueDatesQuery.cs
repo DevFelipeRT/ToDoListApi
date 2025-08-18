@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
-using Application.Lists.DTOs;
 using MediatR;
+using Application.Lists.DTOs;
 
 namespace Application.Lists.Queries.Items;
 
 /// <summary>
-/// Query to get all to-do items with active due dates for a specific user.
+/// Query to get all to-do items with active due dates for a specific account.
 /// </summary>
 public sealed class GetItemsWithDueDatesQuery : IRequest<IEnumerable<ToDoItemDto>>
 {
     /// <summary>
-    /// Gets the unique identifier of the user.
+    /// Gets the unique identifier of the account.
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid AccountId { get; init; }
 
     /// <summary>
     /// Gets the optional start date to filter reminders (inclusive).

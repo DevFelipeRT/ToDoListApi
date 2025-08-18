@@ -16,18 +16,18 @@ public sealed class GetAllToDoItemsByListQuery : IRequest<IReadOnlyCollection<To
     public Guid ListId { get; }
 
     /// <summary>
-    /// Gets the unique identifier of the user performing the query.
+    /// Gets the unique identifier of the account performing the query.
     /// </summary>
-    public Guid UserId { get; }
+    public Guid AccountId { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GetAllToDoItemsByListQuery"/> class.
     /// </summary>
     /// <param name="listId">The unique identifier of the list.</param>
-    /// <param name="userId">The unique identifier of the user.</param>
-    public GetAllToDoItemsByListQuery(Guid listId, Guid userId)
+    /// <param name="accountId">The unique identifier of the account.</param>
+    public GetAllToDoItemsByListQuery(Guid listId, Guid accountId)
     {
         ListId = listId;
-        UserId = userId;
+        AccountId = accountId;
     }
 }
