@@ -1,11 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Application.Common.Interfaces;
-using Infrastructure.Persistence;
-using Infrastructure.Persistence.Repositories;
 using Domain.Lists.Repositories;
 using Domain.Accounts.Repositories;
+using Application.Common.Interfaces;
+using Application.Notifications.Email;
+using Infrastructure.Persistence;
+using Infrastructure.Persistence.Repositories;
+using Infrastructure.Email;
+using Infrastructure.Links;
+using Application.Abstractions.Persistence;
+using Application.Abstractions.Messaging;
+using Infrastructure.Messaging;
 
 namespace Infrastructure;
 
@@ -27,9 +33,18 @@ public static class DependencyInjection
                 builder => builder.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
         services.AddScoped<IDatabaseSeeder, ApplicationDbContextSeed>();
-
         services.AddScoped<IToDoListRepository, ToDoListRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
+        // services.AddTransient<IEmailSender, NoOpEmailSender>();
+        services.AddSingleton<IEmailSender>(_ =>
+            new DiskEmailSender(
+                outputFolder: "var/outbox/emails",
+                defaultFrom:  "no-reply@example.local"));
+
+        services.Configure<ActivationLinkOptions>(configuration.GetSection("ActivationLink"));
+        services.AddSingleton<Application.Accounts.Abstractions.IActivationLinkBuilder, ActivationLinkBuilder>();
 
         return services;
     }
