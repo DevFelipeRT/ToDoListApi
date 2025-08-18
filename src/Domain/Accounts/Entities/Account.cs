@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Domain.Abstractions.Aggregates;
+using Domain.Accounts.Events;
 using Domain.Accounts.Services.Interfaces;
 using Domain.Accounts.ValueObjects;
 
@@ -10,7 +12,7 @@ namespace Domain.Accounts.Entities;
 /// Aggregate root representing an account with credentials, activation lifecycle, and role-based authorization.
 /// Raw token secrets are never stored; only activation token hashes are handled.
 /// </summary>
-public sealed class Account
+public sealed class Account : AggregateRoot
 {
     public AccountId Id { get; private set; } = null!;
     public AccountEmail Email { get; private set; } = null!;
@@ -58,7 +60,13 @@ public sealed class Account
         AccountUsername username,
         AccountName name,
         string passwordHash)
-        => new(AccountId.New(), email, username, name, passwordHash);
+    {
+        var account = new Account(AccountId.New(), email, username, name, passwordHash);
+
+        account.Raise(new AccountRegistered(account.Id, DateTimeOffset.UtcNow));
+
+        return account;
+    }
 
     /// <summary>Marks the account as active at the given instant. Idempotent.</summary>
     public void Activate(DateTimeOffset whenUtc)
