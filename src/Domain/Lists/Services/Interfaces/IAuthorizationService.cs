@@ -22,5 +22,5 @@ public interface IAuthorizationService
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <exception cref="UnauthorizedAccessException">Thrown if the account does not have permission to access or modify the list.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the list does not exist.</exception>
-    Task AssertUserListAccessAsync(AccountId accountId, ToDoListId listId, CancellationToken cancellationToken);
+    Task AssertAccountListAccessAsync(AccountId accountId, ToDoListId listId, CancellationToken cancellationToken);
 }
