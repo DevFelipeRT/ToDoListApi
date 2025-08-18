@@ -1,5 +1,5 @@
 using System;
-using Domain.Lists;
+using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 
 namespace Application.Lists.DTOs;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Domain.Lists.Entities;
 
 namespace Application.Lists.DTOs;
 
@@ -15,9 +16,9 @@ public sealed class ToDoListDto
     public Guid Id { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique identifier of the user who owns the list.
+    /// Gets or sets the unique identifier of the account that owns the list.
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid AccountId { get; init; }
 
     /// <summary>
     /// Gets or sets the title of the To-Do list.
@@ -54,12 +55,12 @@ public sealed class ToDoListDto
     /// </summary>
     /// <param name="list">The domain ToDoList aggregate.</param>
     /// <returns>A mapped <see cref="ToDoListDto"/> instance.</returns>
-    public static ToDoListDto FromDomain(Domain.Lists.ToDoList list)
+    public static ToDoListDto FromDomain(ToDoList list)
     {
         return new ToDoListDto
         {
             Id = list.Id.Value,
-            UserId = list.UserId.Value,
+            AccountId = list.AccountId.Value,
             Title = list.Title.Value,
             Description = list.Description?.Value,
             IsCompleted = list.IsCompleted,
