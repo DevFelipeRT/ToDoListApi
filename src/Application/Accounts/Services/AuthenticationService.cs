@@ -7,6 +7,7 @@ using Domain.Accounts.Repositories;
 using Domain.Accounts.Policies.Interfaces;
 using Application.Accounts.Services.Interfaces;
 using Domain.Accounts.Entities;
+using Application.Abstractions.Persistence;
 
 namespace Application.Accounts.Services;
 
@@ -17,6 +18,7 @@ namespace Application.Accounts.Services;
 public sealed class AuthenticationService : IAuthenticationService
 {
     private readonly IAccountRepository _accountRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAccountLockoutPolicy _lockoutPolicy;
 
@@ -24,14 +26,17 @@ public sealed class AuthenticationService : IAuthenticationService
     /// Initializes a new instance of the <see cref="AuthenticationService"/> class.
     /// </summary>
     /// <param name="accountRepository">The account repository instance.</param>
+    /// <param name="unitOfWork">The unit of work instance.</param>
     /// <param name="passwordHasher">The password hashing service.</param>
     /// <param name="lockoutPolicy">The account lockout policy service.</param>
     public AuthenticationService(
         IAccountRepository accountRepository,
+        IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         IAccountLockoutPolicy lockoutPolicy)
     {
         _accountRepository = accountRepository ?? throw new ArgumentNullException(nameof(accountRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
         _lockoutPolicy = lockoutPolicy ?? throw new ArgumentNullException(nameof(lockoutPolicy));
     }
@@ -78,7 +83,10 @@ public sealed class AuthenticationService : IAuthenticationService
         await _lockoutPolicy.ResetLockout(account.Id, cancellationToken);
 
         account.UpdateLastLogin();
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+
+        _accountRepository.Update(account);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return account;
     }
@@ -122,7 +130,10 @@ public sealed class AuthenticationService : IAuthenticationService
         await _lockoutPolicy.ResetLockout(account.Id, cancellationToken);
 
         account.UpdateLastLogin();
-        await _accountRepository.UpdateAsync(account, cancellationToken);
+
+        _accountRepository.Update(account);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return account;
     }
