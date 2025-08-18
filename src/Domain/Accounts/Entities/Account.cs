@@ -12,11 +12,11 @@ namespace Domain.Accounts.Entities;
 /// </summary>
 public sealed class Account
 {
-    public AccountId Id { get; private set; }
-    public AccountEmail Email { get; private set; }
-    public AccountUsername Username { get; private set; }
-    public AccountName Name { get; private set; }
-    public string PasswordHash { get; private set; }
+    public AccountId Id { get; private set; } = null!;
+    public AccountEmail Email { get; private set; } = null!;
+    public AccountUsername Username { get; private set; } = null!;
+    public AccountName Name { get; private set; } = null!;
+    public string PasswordHash { get; private set; } = string.Empty;
 
     /// <summary>Creation timestamp (UTC).</summary>
     public DateTimeOffset CreatedAt { get; private set; }
@@ -70,9 +70,9 @@ public sealed class Account
     public void Deactivate() => ActivatedAt = null;
 
     /// <summary>
-    /// Issues a new activation token for this account. By default, any non-finalized token is revoked first.
+    /// Creates a new activation token for this account. By default, any non-finalized token is revoked first.
     /// </summary>
-    public ActivationToken IssueActivationToken(
+    public ActivationToken CreateActivationToken(
         string hash,
         DateTimeOffset now,
         TimeSpan timeToLive,
@@ -87,7 +87,7 @@ public sealed class Account
             throw new InvalidOperationException("There is an unfinalized activation token for this account.");
         }
 
-        var token = ActivationToken.Issue(Id, hash, now, timeToLive);
+        var token = ActivationToken.Create(Id, hash, now, timeToLive);
         _activationTokens.Add(token);
         return token;
     }
@@ -99,7 +99,7 @@ public sealed class Account
     public void ActivateWithToken(ActivationToken token, DateTimeOffset whenUtc)
     {
         if (token == null) throw new ArgumentNullException(nameof(token));
-        if (token.UserId != Id) throw new InvalidOperationException("Token does not belong to this account.");
+        if (token.AccountId != Id) throw new InvalidOperationException("Token does not belong to this account.");
         if (!token.IsActive(whenUtc)) throw new InvalidOperationException("Token is revoked or expired.");
 
         token.Revoke(whenUtc, RevocationReason.UsedForActivation);
