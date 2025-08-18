@@ -3,11 +3,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Application.Lists.DTOs;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Services.Interfaces;
+using Application.Lists.DTOs;
 
 namespace Application.Lists.Queries.Items.Handlers;
 
@@ -34,11 +34,11 @@ public sealed class GetAllToDoItemsByListHandler : IRequestHandler<GetAllToDoIte
     {
         // Convert primitive data to Value Objects
         var listId = new ToDoListId(request.ListId);
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
-        var items = await _toDoListRepository.GetAllItemsByListIdAndUserAsync(listId, userId, cancellationToken);
+        var items = await _toDoListRepository.GetAllItemsByListIdAndAccountAsync(listId, accountId, cancellationToken);
         
         return items
             .Select(item => ToDoItemDto.FromDomain(item, listId))

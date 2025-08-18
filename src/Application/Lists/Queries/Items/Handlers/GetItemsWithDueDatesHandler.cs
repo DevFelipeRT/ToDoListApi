@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Lists.DTOs;
+using MediatR;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.Repositories;
-using MediatR;
+using Application.Lists.DTOs;
 
 namespace Application.Lists.Queries.Items.Handlers;
 
 /// <summary>
-/// Handles the query that retrieves to-do items with active due dates for a given user.
-/// Orchestrates: (1) fetch user's list IDs; (2) fetch items by IN(ListId) and optional date window.
+/// Handles the query that retrieves to-do items with active due dates for a given account.
+/// Orchestrates: (1) fetch account's list IDs; (2) fetch items by IN(ListId) and optional date window.
 /// </summary>
 public sealed class GetItemsWithDueDatesHandler
     : IRequestHandler<GetItemsWithDueDatesQuery, IEnumerable<ToDoItemDto>>
@@ -28,9 +28,9 @@ public sealed class GetItemsWithDueDatesHandler
         GetItemsWithDueDatesQuery request,
         CancellationToken cancellationToken)
     {
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
 
-        var listIds = await _toDoListRepository.GetIdsByUserAsync(userId, cancellationToken);
+        var listIds = await _toDoListRepository.GetIdsByAccountAsync(accountId, cancellationToken);
         if (listIds is null || listIds.Count == 0)
             return Enumerable.Empty<ToDoItemDto>();
 

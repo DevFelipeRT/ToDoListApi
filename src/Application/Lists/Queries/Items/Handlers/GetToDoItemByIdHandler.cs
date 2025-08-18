@@ -1,12 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Application.Lists.Queries.Items;
-using Application.Lists.DTOs;
 using Domain.Accounts.ValueObjects;
 using Domain.Lists.Repositories;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Services.Interfaces;
+using Application.Lists.DTOs;
 
 namespace Application.Lists.Queries.Items.Handlers;
 
@@ -33,11 +32,11 @@ public sealed class GetToDoItemByIdHandler : IRequestHandler<GetToDoItemByIdQuer
     {
         var listId = new ToDoListId(request.ListId);
         var itemId = new ToDoItemId(request.ItemId);
-        var userId = AccountId.FromGuid(request.UserId);
+        var accountId = AccountId.FromGuid(request.AccountId);
 
-        await _authorizationService.AssertUserListAccessAsync(userId, listId, cancellationToken);
+        await _authorizationService.AssertAccountListAccessAsync(accountId, listId, cancellationToken);
 
-        var item = await _toDoListRepository.GetItemByIdAsync(listId, itemId, userId, cancellationToken);
+        var item = await _toDoListRepository.GetItemByIdAsync(listId, itemId, accountId, cancellationToken);
         if (item is null)
             return null;
 
