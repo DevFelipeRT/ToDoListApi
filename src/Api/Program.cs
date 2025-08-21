@@ -7,6 +7,10 @@ using Application.Accounts.Services.Interfaces;
 using Infrastructure;
 using Api.Identity.Services;
 using Api.Identity.Configuration;
+using MediatR;
+using Application.Abstractions.Messaging;
+using Domain.Accounts.Events;
+using Application.Notifications.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +95,20 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+
+    // Quantos handlers o MediatR enxerga p/ AccountRegistered?
+    var handlers = scope.ServiceProvider
+        .GetServices<INotificationHandler<DomainEventNotification<AccountRegistered>>>();
+    Console.WriteLine($"[BootCheck] Handlers AccountRegistered: {handlers.Count()}");
+
+    // Qual IEmailSender foi resolvido?
+    var sender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+    Console.WriteLine($"[BootCheck] IEmailSender: {sender.GetType().FullName}");
+}
 
 // // Seed the database at startup (useful during development)
 // using (var scope = app.Services.CreateScope())
