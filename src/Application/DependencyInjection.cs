@@ -8,6 +8,7 @@ using Domain.Lists.Services;
 using Application.Accounts.Services.Interfaces;
 using Application.Accounts.Services;
 using Application.Lists.Services;
+using Application.Accounts.DomainEventHandlers;
 
 namespace Application;
 
@@ -24,7 +25,10 @@ public static class DependencyInjection
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddMediatR(cfg => 
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+            cfg.RegisterServicesFromAssemblies(
+                typeof(CreateActivationTokenOnAccountRegisteredHandler).Assembly, 
+                Assembly.GetExecutingAssembly()
+            ));
 
         // Dependency injection for domain services
         services.AddScoped<IAccountLockoutPolicy, AccountLockoutPolicy>();
