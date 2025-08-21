@@ -37,11 +37,13 @@ public static class DependencyInjection
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
-        // services.AddTransient<IEmailSender, NoOpEmailSender>();
+
+        var outboxDir = Environment.GetEnvironmentVariable("EMAIL_OUTBOX_DIR") ?? "/data/outbox";
+        var defaultFrom = Environment.GetEnvironmentVariable("EMAIL_DEFAULT_FROM") ?? "no-reply@todoapp.local";
         services.AddSingleton<IEmailSender>(_ =>
             new DiskEmailSender(
-                outputFolder: "var/outbox/emails",
-                defaultFrom:  "no-reply@example.local"));
+                outputFolder: outboxDir,
+                defaultFrom:  defaultFrom));
 
         services.Configure<ActivationLinkOptions>(configuration.GetSection("ActivationLink"));
         services.AddSingleton<Application.Accounts.Abstractions.IActivationLinkBuilder, ActivationLinkBuilder>();
