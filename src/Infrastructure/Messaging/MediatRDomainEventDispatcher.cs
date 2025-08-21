@@ -16,13 +16,19 @@ public sealed class MediatRDomainEventDispatcher : IDomainEventDispatcher
 
     public Task PublishAsync(IEnumerable<IDomainEvent> events, CancellationToken cancellationToken = default)
     {
-        var publishTasks = events.Select(evt =>
-        {
-            var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(evt.GetType());
-            var wrapper = (INotification)System.Activator.CreateInstance(wrapperType, evt)!;
-            return _mediator.Publish(wrapper, cancellationToken);
-        });
+        var list = events as IList<IDomainEvent> ?? events.ToList();
+        if (list.Count == 0) return Task.CompletedTask;
 
-        return Task.WhenAll(publishTasks);
+        var openType = typeof(Application.Abstractions.Messaging.DomainEventNotification<>);
+
+        var tasks = new List<Task>(list.Count);
+        foreach (var evt in list)
+        {
+            var notifType = openType.MakeGenericType(evt.GetType());
+            var notif = (INotification)System.Activator.CreateInstance(notifType, evt)!;
+            tasks.Add(_mediator.Publish(notif, cancellationToken));
+        }
+
+        return Task.WhenAll(tasks);
     }
 }
