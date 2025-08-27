@@ -1,14 +1,12 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Domain.Accounts.Policies.Interfaces;
-using Domain.Accounts.Services.Interfaces;
 using Domain.Lists.Policies;
 using Domain.Lists.Services.Interfaces;
 using Domain.Lists.Services;
-using Application.Accounts.Services.Interfaces;
-using Application.Accounts.Services;
 using Application.Lists.Services;
-using Application.Accounts.DomainEventHandlers;
+using Domain.Accounts.Policies.Interfaces;
+using Application.Accounts.Services;
+using Application.Notifications.Email;
 
 namespace Application;
 
@@ -24,24 +22,20 @@ public static class DependencyInjection
     /// <returns>The same service collection so that multiple calls can be chained.</returns>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddMediatR(cfg => 
+        services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssemblies(
-                typeof(CreateActivationTokenOnAccountRegisteredHandler).Assembly, 
                 Assembly.GetExecutingAssembly()
             ));
 
         // Dependency injection for domain services
-        services.AddScoped<IAccountLockoutPolicy, AccountLockoutPolicy>();
-        services.AddScoped<IAccountUniquenessPolicy, AccountUniquenessChecker>();
-        services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IPasswordPolicy, PasswordPolicy>();
         services.AddScoped<IReminderSchedulerService, ReminderSchedulerService>();
         services.AddScoped<IToDoListItemTransferService, ToDoListItemTransferService>();
         services.AddScoped<IToDoListUniquenessPolicy, ToDoListUniquenessChecker>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+        services.AddScoped<IAccountUniquenessPolicy, AccountUniquenessChecker>();
 
         // Dependency injection for application services
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<EmailService>();
 
         return services;
     }
