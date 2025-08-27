@@ -1,4 +1,5 @@
 using System;
+using Application.Lists.Commands.Items;
 using Domain.Accounts.Entities;
 
 namespace Application.Accounts.DTOs;
@@ -9,15 +10,18 @@ namespace Application.Accounts.DTOs;
 /// </summary>
 public class AccountDto
 {
-    public string Id { get; }
+    public Guid Id { get; }
+    public string CredentialId { get; }
     public string Email { get; }
     public string Username { get; }
     public string Name { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? LastLoginAt { get; }
+    public bool IsActive => LastLoginAt.HasValue;
 
     public AccountDto(
-        string id,
+        Guid id,
+        string credentialId,
         string email,
         string username,
         string name,
@@ -25,6 +29,7 @@ public class AccountDto
         DateTimeOffset? lastLoginAt)
     {
         Id = id;
+        CredentialId = credentialId;
         Email = email;
         Username = username;
         Name = name;
@@ -39,7 +44,8 @@ public class AccountDto
     {
         if (account is null) throw new ArgumentNullException(nameof(account));
         return new AccountDto(
-            account.Id.ToString(),
+            account.Id.Value,
+            account.CredentialId!.ToString(),
             account.Email.ToString(),
             account.Username.ToString(),
             account.Name.ToString(),
