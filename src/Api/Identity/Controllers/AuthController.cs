@@ -1,135 +1,120 @@
 using System;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.Identity.Client;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using MediatR;
-using Domain.Accounts.ValueObjects;
+
+using Infrastructure.IdentityAccess;
 using Application.Accounts.Services.Interfaces;
 using Api.Identity.Contracts.Requests;
 using Api.Identity.Contracts.Responses;
-using Domain.Accounts.Entities;
+using Application.Accounts.Queries;
 using Application.Accounts.Commands;
+using Application.Accounts.DTOs;
+using Application.Abstractions.Links;
 
 namespace Api.Identity.Controllers;
 
-/// <summary>
-/// Provides endpoints for account authentication (login) and account registration.
-/// </summary>
 [ApiController]
+[Produces("application/json")]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public sealed class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly IAuthenticationService _authenticationService;
-    private readonly IJwtTokenService _jwtTokenService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IJwtTokenService _jwt;
+    private readonly IUrlCrypto _urlCrypto;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// Initializes a new instance of <see cref="AuthController"/>.
     /// </summary>
     public AuthController(
         IMediator mediator,
-        IAuthenticationService authenticationService,
-        IJwtTokenService jwtTokenService)
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        IJwtTokenService jwt,
+        IUrlCrypto urlCrypto)
     {
         _mediator = mediator;
-        _authenticationService = authenticationService;
-        _jwtTokenService = jwtTokenService;
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _jwt = jwt;
+        _urlCrypto = urlCrypto;
     }
 
     /// <summary>
-    /// Authenticates the account and returns a JWT token if credentials are valid.
+    /// Authenticates a user with ASP.NET Identity and returns a JWT on success.
     /// </summary>
+    /// <param name="request">Credentials payload.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="AuthResponse"/> with access token and account data.</returns>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request?.Email) ||
-            string.IsNullOrWhiteSpace(request?.Password))
-        {
-            return BadRequest(new { message = "All fields are required." });
-        }
+        if (!IsValidLoginRequest(request))
+            return BadRequest(new { message = "Email and password are required." });
 
-        AccountEmail emailVo;
-        Account account;
+        var user = await FindUserAsync(request.Email, ct);
+        if (user is null)
+            return Unauthorized(new { message = "Invalid credentials." });
 
-        try
-        {
-            emailVo = new AccountEmail(request.Email);
-        }
-        catch (Exception)
-        {
-            return Unauthorized(new { message = "Invalid email." });
-        }
+        if (!await ValidatePasswordAsync(user, request.Password))
+            return Unauthorized(new { message = "Invalid credentials." });
 
-        try
-        {
-            var result = await _authenticationService.AuthenticateAsync(emailVo, request.Password, cancellationToken);
+        var account = await GetAccountByEmailAsync(user.Email!, ct);
+        if (account is null)
+            return Unauthorized(new { message = "Account not found." });
 
-            if (result == null)
-            {
-                return Unauthorized(new { message = "Invalid password." });
-            }
+        var roles = await _userManager.GetRolesAsync(user);
+        var token = _jwt.GenerateToken(Guid.Parse(account.Id.ToString()), account.Username, roles);
 
-            account = result;
-        }
-        catch (Exception)
-        {
-            return Unauthorized(new { message = "Unregistered account." });
-        }
-
-        var token = _jwtTokenService.GenerateToken(account.Id.Value, account.Username.Value);
-
-        var response = new AuthResponse
+        return Ok(new AuthResponse
         {
             Token = token,
-            AccountId = account.Id.Value,
-            Username = account.Username.Value,
-            Name = account.Name.Value,
-            Email = account.Email.Value
-        };
-
-        return Ok(response);
+            AccountId = Guid.Parse(account.Id.ToString()),
+            Username = account.Username,
+            Name = account.Name,
+            Email = account.Email
+        });
     }
 
     /// <summary>
-    /// Registers a new account account and returns a JWT token upon successful registration.
+    /// Registers a new account and returns a JWT on success.
     /// </summary>
+    /// <param name="request">Registration payload.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A <see cref="RegisterResponse"/> with access token and account data.</returns>
     [HttpPost("register")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request?.Email) ||
-            string.IsNullOrWhiteSpace(request?.Password) ||
-            string.IsNullOrWhiteSpace(request?.Username) ||
-            string.IsNullOrWhiteSpace(request?.Name))
-        {
-            return BadRequest(new { message = "All fields are required." });
-        }
-
-        var command = new CreateAccountCommand(
-            request.Email,
-            request.Username,
-            request.Name,
-            request.Password
-        );
+        if (!IsValidRegisterRequest(request))
+            return BadRequest(new { message = "Name, username, email and password are required." });
 
         Guid accountId;
-
         try
         {
-            accountId = await _mediator.Send(command, cancellationToken);
+            accountId = await _mediator.Send(
+                new CreateAccountCommand(request.Email, request.Username, request.Name, request.Password),
+                ct);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            // Handler throws InvalidOperationException for business rule violations
             return UnprocessableEntity(new { message = ex.Message });
         }
 
-        var token = _jwtTokenService.GenerateToken(accountId, request.Username);
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        var roles = user is null ? Array.Empty<string>() : await _userManager.GetRolesAsync(user);
+        var token = _jwt.GenerateToken(accountId, request.Username, roles);
 
         var response = new RegisterResponse
         {
@@ -140,6 +125,108 @@ public class AuthController : ControllerBase
             Email = request.Email
         };
 
-        return CreatedAtAction(nameof(Register), response);
+        return Created(string.Empty, response);
     }
+
+    /// <summary>
+    /// Confirms email using ASP.NET Identity and activates the domain account.
+    /// Expects URL format: GET /api/auth/confirm-email?token={base64url}&uid={protectedUid}
+    /// </summary>
+    [HttpGet("confirm-email")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> ConfirmEmail(
+        [FromQuery] string token,
+        [FromQuery] string uid,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(uid))
+            return BadRequest(new { message = "Invalid activation link." });
+
+        // 1) Unprotect UID (CredentialId)
+        string rawUid;
+        try
+        {
+            rawUid = _urlCrypto.Unprotect(uid);
+        }
+        catch
+        {
+            return BadRequest(new { message = "Invalid activation link." });
+        }
+
+        // Normalize to Identity's user id (Guid "D" or string as-is)
+        var userId = Guid.TryParse(rawUid, out var g) ? g.ToString("D") : rawUid.Trim();
+
+        // 2) Locate user
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Unauthorized(new { message = "Invalid activation link." });
+
+        // 3) Decode Base64Url token back to original format
+        string decodedToken;
+        try
+        {
+            var bytes = WebEncoders.Base64UrlDecode(token);
+            decodedToken = Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return BadRequest(new { message = "Invalid token format." });
+        }
+
+        // 4) Confirm email with Identity
+        var confirm = await _userManager.ConfirmEmailAsync(user, decodedToken);
+        if (!confirm.Succeeded)
+            return BadRequest(new { message = "Invalid or expired token." });
+
+        // 5) Activate domain account (idempotent no seu command handler)
+        var accountDto = await _mediator.Send(new GetAccountByCredentialIdQuery(userId), ct);
+        if (accountDto is null)
+            return Unauthorized(new { message = "Invalid activation link." });
+
+        if (!accountDto.IsActive)
+            await _mediator.Send(new ActivateAccountCommand(accountDto.Id), ct);
+
+        // 6) Issue JWT
+        var roles = await _userManager.GetRolesAsync(user);
+        var jwt = _jwt.GenerateToken(Guid.Parse(accountDto.Id.ToString()), accountDto.Username, roles);
+
+        return Ok(new AuthResponse
+        {
+            Token = jwt,
+            AccountId = Guid.Parse(accountDto.Id.ToString()),
+            Username = accountDto.Username,
+            Name = accountDto.Name,
+            Email = accountDto.Email
+        });
+    }
+
+    private static bool IsValidLoginRequest(LoginRequest? request) =>
+        request is not null &&
+        !string.IsNullOrWhiteSpace(request.Email) &&
+        !string.IsNullOrWhiteSpace(request.Password);
+
+    private static bool IsValidRegisterRequest(RegisterRequest? request) =>
+        request is not null &&
+        !string.IsNullOrWhiteSpace(request.Name) &&
+        !string.IsNullOrWhiteSpace(request.Username) &&
+        !string.IsNullOrWhiteSpace(request.Email) &&
+        !string.IsNullOrWhiteSpace(request.Password);
+
+    private async Task<ApplicationUser?> FindUserAsync(string login, CancellationToken ct)
+    {
+        var byEmail = await _userManager.FindByEmailAsync(login);
+        if (byEmail is not null) return byEmail;
+        return await _userManager.FindByNameAsync(login);
+    }
+
+    private async Task<bool> ValidatePasswordAsync(ApplicationUser user, string password)
+    {
+        var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        return result.Succeeded;
+    }
+
+    private Task<AccountDto?> GetAccountByEmailAsync(string email, CancellationToken ct) =>
+        _mediator.Send(new GetAccountByEmailQuery(email), ct);
 }
