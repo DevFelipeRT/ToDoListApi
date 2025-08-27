@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.Entities;
 using Application.Accounts.DTOs;
@@ -11,7 +12,7 @@ namespace Application.Accounts.Queries.Handlers;
 /// <summary>
 /// Handler responsible for retrieving all accounts from the repository and converting them to DTOs.
 /// </summary>
-public sealed class GetAllAccountsHandler
+public sealed class GetAllAccountsHandler : IRequestHandler<GetAllAccountsQuery, IReadOnlyCollection<AccountDto>>
 {
     private readonly IAccountRepository _accountRepository;
 
@@ -23,9 +24,10 @@ public sealed class GetAllAccountsHandler
     /// <summary>
     /// Handles the query to retrieve all accounts.
     /// </summary>
+    /// <param name="query">The query object.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of AccountDto representing all accounts.</returns>
-    public async Task<IReadOnlyCollection<AccountDto>> Handle(CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<AccountDto>> Handle(GetAllAccountsQuery query, CancellationToken cancellationToken)
     {
         var accounts = await RetrieveAllAccounts(cancellationToken);
 
@@ -35,9 +37,7 @@ public sealed class GetAllAccountsHandler
     private async Task<IReadOnlyCollection<Account>> RetrieveAllAccounts(CancellationToken cancellationToken)
     {
         var accounts = await _accountRepository.GetAllAsync(cancellationToken);
-        if (accounts == null || accounts.Count == 0)
-            throw new InvalidOperationException("No accounts found.");
-        return accounts;
+        return accounts ?? new List<Account>();
     }
 
     private IReadOnlyCollection<AccountDto> ConvertToDto(IReadOnlyCollection<Account> accounts)

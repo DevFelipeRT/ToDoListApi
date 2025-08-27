@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Entities;
@@ -11,7 +12,7 @@ namespace Application.Accounts.Queries.Handlers;
 /// <summary>
 /// Handler responsible for retrieving an account by email from the repository and converting to DTO.
 /// </summary>
-public sealed class GetAccountByEmailHandler
+public sealed class GetAccountByEmailHandler : IRequestHandler<GetAccountByEmailQuery, AccountDto?>
 {
     private readonly IAccountRepository _accountRepository;
 

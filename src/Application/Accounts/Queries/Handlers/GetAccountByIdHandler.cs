@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Entities;
@@ -11,7 +12,7 @@ namespace Application.Accounts.Queries.Handlers;
 /// <summary>
 /// Handler responsible for retrieving an account by id from the repository and converting to DTO.
 /// </summary>
-public sealed class GetAccountByIdHandler
+public sealed class GetAccountByIdHandler : IRequestHandler<GetAccountByIdQuery, AccountDto?>
 {
     private readonly IAccountRepository _accountRepository;
 
@@ -33,14 +34,15 @@ public sealed class GetAccountByIdHandler
 
         var account = await RetrieveAccount(accountId, cancellationToken);
 
+        if (account == null)
+            return null;
+
         return AccountDto.FromAggregate(account);
     }
 
-    private async Task<Account> RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)
+    private async Task<Account?> RetrieveAccount(AccountId accountId, CancellationToken cancellationToken)
     {
         var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
-        if (account is null)
-            throw new InvalidOperationException("Account not found.");
         return account;
     }
 }

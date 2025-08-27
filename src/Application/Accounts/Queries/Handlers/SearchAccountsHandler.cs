@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Domain.Accounts.Repositories;
 using Domain.Accounts.ValueObjects;
 using Domain.Accounts.Entities;
@@ -12,7 +13,7 @@ namespace Application.Accounts.Queries.Handlers;
 /// <summary>
 /// Handler responsible for searching accounts with optional filters and pagination.
 /// </summary>
-public sealed class SearchAccountsHandler
+public sealed class SearchAccountsHandler : IRequestHandler<SearchAccountsQuery, IReadOnlyCollection<AccountDto>>
 {
     private readonly IAccountRepository _accountRepository;
 
@@ -69,7 +70,7 @@ public sealed class SearchAccountsHandler
         {
             dtos.Add(AccountDto.FromAggregate(account));
         }
-        
+
         return dtos;
     }
 }
