@@ -3,182 +3,220 @@ using System.Collections.Generic;
 using System.Linq;
 using Domain.Abstractions.Aggregates;
 using Domain.Accounts.Events;
-using Domain.Accounts.Services.Interfaces;
 using Domain.Accounts.ValueObjects;
 
 namespace Domain.Accounts.Entities;
 
+/// <summary>
+/// Account aggregate root that represents user-related business concepts.
+/// Authentication and credential lifecycle are owned by an external IAM.
+/// The aggregate may hold an optional reference to the external credential identifier.
+/// </summary>
 public sealed class Account : AggregateRoot
 {
+    /// <summary>
+    /// Aggregate identifier.
+    /// </summary>
     public AccountId Id { get; private set; } = null!;
-    public AccountEmail Email { get; private set; } = null!;
-    public AccountUsername Username { get; private set; } = null!;
-    public AccountName Name { get; private set; } = null!;
-    public string PasswordHash { get; private set; } = string.Empty;
 
-    /// <summary>UTC creation instant.</summary>
+    /// <summary>
+    /// Optional reference to the external credential identifier managed by IAM.
+    /// </summary>
+    public CredentialId? CredentialId { get; private set; }
+
+    /// <summary>
+    /// Email address associated with the account.
+    /// </summary>
+    public AccountEmail Email { get; private set; } = null!;
+
+    /// <summary>
+    /// Public username associated with the account.
+    /// </summary>
+    public AccountUsername Username { get; private set; } = null!;
+
+    /// <summary>
+    /// Display name associated with the account.
+    /// </summary>
+    public AccountName Name { get; private set; } = null!;
+
+    /// <summary>
+    /// UTC timestamp when the account was created.
+    /// </summary>
     public DateTimeOffset CreatedAt { get; private set; }
 
-    /// <summary>UTC instant of the last successful sign-in, if any.</summary>
+    /// <summary>
+    /// UTC timestamp of the last successful sign-in, if any.
+    /// </summary>
     public DateTimeOffset? LastLoginAt { get; private set; }
 
-    /// <summary>UTC instant when the account became active, if active.</summary>
+    /// <summary>
+    /// UTC timestamp when the account became active, if active.
+    /// </summary>
     public DateTimeOffset? ActivatedAt { get; private set; }
 
-    private readonly List<Role> _roles = new();
-    public IReadOnlyCollection<Role> Roles => _roles.AsReadOnly();
-
-    private readonly List<ActivationToken> _activationTokens = new();
-    public IReadOnlyCollection<ActivationToken> ActivationTokens => _activationTokens.AsReadOnly();
+    /// <summary>
+    /// Indicates whether the account is currently active.
+    /// </summary>
+    public bool IsActive => ActivatedAt.HasValue;
 
     private Account() { }
 
-    public Account(
+    private Account(
         AccountId id,
         AccountEmail email,
         AccountUsername username,
         AccountName name,
-        string passwordHash,
-        DateTimeOffset? activatedAt = null)
+        CredentialId? credentialId = null,
+        DateTimeOffset? activatedAt = null,
+        DateTimeOffset? lastLoginAt = null,
+        DateTimeOffset? createdAt = null)
     {
         Id = id ?? throw new ArgumentNullException(nameof(id));
         Email = email ?? throw new ArgumentNullException(nameof(email));
         Username = username ?? throw new ArgumentNullException(nameof(username));
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        PasswordHash = passwordHash ?? throw new ArgumentNullException(nameof(passwordHash));
-        CreatedAt = DateTimeOffset.UtcNow;
+
+        CredentialId = credentialId;
         ActivatedAt = activatedAt;
+        LastLoginAt = lastLoginAt;
+        CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
     }
 
-    /// <summary>Creates a new pending account and raises <see cref="AccountRegistered"/>.</summary>
-    public static Account Create(
-        AccountEmail email,
-        AccountUsername username,
-        AccountName name,
-        string passwordHash)
+    /// <summary>
+    /// Creates a pending account and raises <see cref="AccountRegistered"/>.
+    /// </summary>
+    public static Account Create(AccountEmail email, AccountUsername username, AccountName name)
     {
-        var account = new Account(AccountId.New(), email, username, name, passwordHash);
-        account.Raise(new AccountRegistered(account.Id, DateTimeOffset.UtcNow));
+        var account = new Account(AccountId.New(), email, username, name);
+        account.Raise(new AccountRegistered(account.Id, account.CreatedAt));
         return account;
     }
 
-    /// <summary>Marks the account as active at the given instant (idempotent).</summary>
+    /// <summary>
+    /// Creates an account already linked to external credentials.
+    /// Raises <see cref="AccountRegistered"/> and <see cref="AccountLinkedToCredentials"/> for consistency.
+    /// </summary>
+    public static Account CreateLinked(CredentialId credentialId, AccountEmail email, AccountUsername username, AccountName name)
+    {
+        if (credentialId is null) throw new ArgumentNullException(nameof(credentialId));
+
+        var account = new Account(AccountId.New(), email, username, name, credentialId);
+        // Signal registration and the external link so handlers can react (audits, projections, etc.)
+        account.Raise(new AccountRegistered(account.Id, account.CreatedAt));
+        account.Raise(new AccountLinkedToCredentials(account.Id, credentialId, DateTimeOffset.UtcNow));
+        return account;
+    }
+
+    /// <summary>
+    /// Restores an account from persistence.
+    /// </summary>
+    public static Account Restore(
+        AccountId id,
+        CredentialId? credentialId,
+        AccountEmail email,
+        AccountUsername username,
+        AccountName name,
+        DateTimeOffset createdAt,
+        DateTimeOffset? lastLoginAt,
+        DateTimeOffset? activatedAt)
+    {
+        return new Account(id, email, username, name, credentialId, activatedAt, lastLoginAt, createdAt);
+    }
+
+    /// <summary>
+    /// Activates the account and raises <see cref="AccountActivated"/>.
+    /// </summary>
     public void Activate(DateTimeOffset whenUtc)
     {
-        if (ActivatedAt is null) ActivatedAt = whenUtc;
-    }
-
-    /// <summary>Marks the account as inactive.</summary>
-    public void Deactivate() => ActivatedAt = null;
-
-    /// <summary>
-    /// Issues a new activation token. Optionally revokes all currently active tokens first.
-    /// Active = not revoked and not expired at <paramref name="now"/>.
-    /// Expired tokens are not revoked by default.
-    /// </summary>
-    public ActivationToken CreateActivationToken(
-        string hash,
-        DateTimeOffset now,
-        TimeSpan timeToLive,
-        bool revokeExistingFirst = true)
-    {
-        if (revokeExistingFirst)
-        {
-            RevokeAllActiveTokens(now, RevocationReason.Reissued);
-        }
-        else if (HasActiveToken(now))
-        {
-            throw new InvalidOperationException("There is an active activation token for this account.");
-        }
-
-        var token = ActivationToken.Create(Id, hash, now, timeToLive);
-        _activationTokens.Add(token);
-        return token;
+        if (IsActive) return;
+        ActivatedAt = whenUtc;
+        Raise(new AccountActivated(Id, whenUtc));
     }
 
     /// <summary>
-    /// Activates the account using an owned token. Validates ownership and activity window,
-    /// then revokes the token with <see cref="RevocationReason.UsedForActivation"/>.
+    /// Deactivates the account and raises <see cref="AccountDeactivated"/>.
     /// </summary>
-    public void ActivateWithToken(ActivationToken token, DateTimeOffset whenUtc)
+    public void Deactivate()
     {
-        if (token is null) throw new ArgumentNullException(nameof(token));
-        if (token.AccountId != Id) throw new InvalidOperationException("Token does not belong to this account.");
-        if (!token.IsActive(whenUtc)) throw new InvalidOperationException("Token is revoked or expired.");
-
-        token.Revoke(whenUtc, RevocationReason.UsedForActivation);
-        Activate(whenUtc);
-    }
-
-    /// <summary>Revokes all tokens that are active at <paramref name="whenUtc"/>.</summary>
-    public void RevokeAllActiveTokens(DateTimeOffset whenUtc, RevocationReason reason)
-    {
-        foreach (var t in _activationTokens)
-            if (t.IsActive(whenUtc)) t.Revoke(whenUtc, reason);
+        if (!IsActive) return;
+        ActivatedAt = null;
+        Raise(new AccountDeactivated(Id, DateTimeOffset.UtcNow));
     }
 
     /// <summary>
-    /// Revokes all non-revoked tokens, including those already expired.
-    /// Use for explicit audit/policy; not required for normal issuance.
+    /// Requests an activation flow (domain-level intent) and raises <see cref="AccountActivationRequested"/>.
+    /// Handlers should perform notification or token issuance in the IAM.
     /// </summary>
-    public void RevokeAllNonRevokedTokens(DateTimeOffset whenUtc, RevocationReason reason)
+    public void RequestActivation(CredentialId? initiatorCredentialId = null)
     {
-        foreach (var t in _activationTokens)
-            if (!t.IsRevoked) t.Revoke(whenUtc, reason);
+        Raise(new AccountActivationRequested(Id, initiatorCredentialId, DateTimeOffset.UtcNow));
     }
 
-    /// <summary>Returns true if there is any token active at <paramref name="now"/>.</summary>
-    public bool HasActiveToken(DateTimeOffset now)
-        => _activationTokens.Any(t => t.IsActive(now));
-
-    /// <summary>Returns true if there is any token finalized at <paramref name="now"/> (revoked or expired).</summary>
-    public bool HasFinalizedToken(DateTimeOffset now)
-        => _activationTokens.Any(t => t.IsFinalized(now));
-
-    /// <summary>Returns true if there is any token that is not revoked (expired tokens still count as non-revoked).</summary>
-    public bool HasNonRevokedToken()
-        => _activationTokens.Any(t => !t.IsRevoked);
-
-    /// <summary>Returns an active token by identifier or null if none matches at <paramref name="now"/>.</summary>
-    public ActivationToken? FindActiveTokenById(Guid tokenId, DateTimeOffset now)
-        => _activationTokens.FirstOrDefault(t => t.Id == tokenId && t.IsActive(now));
-
-    /// <summary>Returns a finalized token by identifier or null if none matches at <paramref name="now"/>.</summary>
-    public ActivationToken? FindFinalizedTokenById(Guid tokenId, DateTimeOffset now)
-        => _activationTokens.FirstOrDefault(t => t.Id == tokenId && t.IsFinalized(now));
-
+    /// <summary>
+    /// Updates the display name and raises <see cref="AccountNameChanged"/> if changed.
+    /// </summary>
     public void UpdateName(AccountName newName)
-        => Name = newName ?? throw new ArgumentNullException(nameof(newName));
+    {
+        if (newName is null) throw new ArgumentNullException(nameof(newName));
+        var old = Name;
+        if (old.Equals(newName)) return;
 
+        Name = newName;
+        Raise(new AccountNameChanged(Id, old, newName, DateTimeOffset.UtcNow));
+    }
+
+    /// <summary>
+    /// Updates the email and raises <see cref="AccountEmailChanged"/> if changed.
+    /// </summary>
     public void UpdateEmail(AccountEmail newEmail)
-        => Email = newEmail ?? throw new ArgumentNullException(nameof(newEmail));
+    {
+        if (newEmail is null) throw new ArgumentNullException(nameof(newEmail));
+        var old = Email;
+        if (old.Equals(newEmail)) return;
 
+        Email = newEmail;
+        Raise(new AccountEmailChanged(Id, old, newEmail, DateTimeOffset.UtcNow));
+    }
+
+    /// <summary>
+    /// Updates the username and raises <see cref="AccountUsernameChanged"/> if changed.
+    /// </summary>
     public void UpdateUsername(AccountUsername newUsername)
-        => Username = newUsername ?? throw new ArgumentNullException(nameof(newUsername));
-
-    public void UpdateLastLogin() => LastLoginAt = DateTimeOffset.UtcNow;
-
-    public void UpdatePassword(string newPasswordHash)
-        => PasswordHash = newPasswordHash ?? throw new ArgumentNullException(nameof(newPasswordHash));
-
-    public bool ValidatePassword(string plainPassword, IPasswordHasher hasher)
     {
-        if (hasher is null) throw new ArgumentNullException(nameof(hasher));
-        return hasher.VerifyPassword(PasswordHash, plainPassword);
+        if (newUsername is null) throw new ArgumentNullException(nameof(newUsername));
+        var old = Username;
+        if (old.Equals(newUsername)) return;
+
+        Username = newUsername;
+        Raise(new AccountUsernameChanged(Id, old, newUsername, DateTimeOffset.UtcNow));
     }
 
-    public void AssignRole(Role role)
+    /// <summary>
+    /// Updates the last successful login timestamp.
+    /// </summary>
+    public void UpdateLastLogin(DateTimeOffset? whenUtc = null)
     {
-        if (role is null) throw new ArgumentNullException(nameof(role));
-        if (_roles.Any(r => r.Id == role.Id)) return;
-        _roles.Add(role);
+        LastLoginAt = whenUtc ?? DateTimeOffset.UtcNow;
     }
 
-    public void RemoveRole(Role role)
+    /// <summary>
+    /// Links this account to external credentials. Prevents relinking to a different credential.
+    /// Raises <see cref="AccountLinkedToCredentials"/> when a new link is established.
+    /// </summary>
+    public void LinkToCredentials(CredentialId credentialId)
     {
-        if (role is null) throw new ArgumentNullException(nameof(role));
-        _roles.RemoveAll(r => r.Id == role.Id);
-    }
+        if (credentialId is null) throw new ArgumentNullException(nameof(credentialId));
 
-    public bool HasRole(string roleName) => _roles.Any(r => r.NameEquals(roleName));
+        if (CredentialId is null)
+        {
+            CredentialId = credentialId;
+            Raise(new AccountLinkedToCredentials(Id, credentialId, DateTimeOffset.UtcNow));
+            return;
+        }
+
+        if (CredentialId.Equals(credentialId)) return;
+
+        throw new InvalidOperationException("Account is already linked to a different credential.");
+    }
 }
+

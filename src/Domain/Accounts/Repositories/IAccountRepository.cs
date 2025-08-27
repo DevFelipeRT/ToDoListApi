@@ -7,47 +7,65 @@ using Domain.Accounts.ValueObjects;
 
 namespace Domain.Accounts.Repositories;
 
-/// <summary>
-/// Repository contract for persistence and retrieval of Account aggregates.
-/// </summary>
 public interface IAccountRepository
 {
     /// <summary>
-    /// Adds a new account aggregate to the data store.
+    /// Adds a newly created account aggregate to the unit of work.
     /// </summary>
-    public void Add(Account account);
+    void Add(Account account);
 
     /// <summary>
-    /// Updates an existing account aggregate in the data store.
+    /// Marks an existing account aggregate as modified in the unit of work.
     /// </summary>
-    public void Update(Account account);
+    void Update(Account account);
 
     /// <summary>
-    /// Gets an account by unique identifier.
-    /// Returns null if not found.
+    /// Removes an existing account aggregate from the unit of work.
     /// </summary>
-    Task<Account?> GetByIdAsync(AccountId accountId, CancellationToken cancellationToken);
+    void Remove(Account account);
 
     /// <summary>
-    /// Gets an account by email address.
-    /// Returns null if not found.
+    /// Retrieves an account by its aggregate identifier or null when not found.
     /// </summary>
-    Task<Account?> GetByEmailAsync(AccountEmail email, CancellationToken cancellationToken);
+    Task<Account?> GetByIdAsync(AccountId accountId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets an account by username.
-    /// Returns null if not found.
+    /// Retrieves an account by its email or null when not found.
     /// </summary>
-    Task<Account?> GetByUsernameAsync(AccountUsername username, CancellationToken cancellationToken);
+    Task<Account?> GetByEmailAsync(AccountEmail email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all accounts in the data store.
+    /// Retrieves an account by its public username or null when not found.
     /// </summary>
-    Task<IReadOnlyCollection<Account>> GetAllAsync(CancellationToken cancellationToken);
+    Task<Account?> GetByUsernameAsync(AccountUsername username, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Searches accounts by optional filters and pagination.
-    /// Any filter parameter can be null.
+    /// Retrieves an account linked to the specified external credential or null when not found.
+    /// </summary>
+    Task<Account?> GetByCredentialIdAsync(CredentialId credentialId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves accounts by their identifiers.
+    /// </summary>
+    Task<IReadOnlyCollection<Account>> GetByIdsAsync(IEnumerable<AccountId> accountIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns true when an account with the specified email exists.
+    /// </summary>
+    Task<bool> ExistsByEmailAsync(AccountEmail email, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns true when an account with the specified username exists.
+    /// </summary>
+    Task<bool> ExistsByUsernameAsync(AccountUsername username, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all accounts.
+    /// </summary>
+    Task<IReadOnlyCollection<Account>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Searches accounts using optional filters and pagination. Passing null ignores the filter.
     /// </summary>
     Task<IReadOnlyCollection<Account>> SearchAsync(
         AccountName? name = null,
@@ -57,12 +75,4 @@ public interface IAccountRepository
         int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets an account prepared for the activation flow by e-mail.
-    /// The returned aggregate MUST include the minimal activation token data needed by the domain
-    /// to issue/revoke tokens (implementation may load only the relevant token(s)).
-    /// Returns null if not found.
-    /// </summary>
-    Task<Account?> GetForActivationByEmailAsync(AccountEmail email, CancellationToken cancellationToken);
 }
