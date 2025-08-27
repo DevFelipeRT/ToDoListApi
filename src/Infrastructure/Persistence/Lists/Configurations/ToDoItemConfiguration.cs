@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 
-namespace Infrastructure.Persistence.Configurations;
+namespace Infrastructure.Persistence.Lists.Configurations;
 
 public sealed class ToDoItemConfiguration : IEntityTypeConfiguration<ToDoItem>
 {

@@ -9,7 +9,7 @@ using Domain.Lists.Entities;
 using Domain.Lists.ValueObjects;
 using Domain.Lists.Repositories;
 
-namespace Infrastructure.Persistence.Repositories;
+namespace Infrastructure.Persistence.Lists;
 
 /// <summary>
 /// Entity Framework Core repository for the <see cref="ToDoList"/> aggregate.
