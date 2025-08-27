@@ -1,9 +1,13 @@
+using MediatR;
+using System.Collections.Generic;
+using Application.Accounts.DTOs;
+
 namespace Application.Accounts.Queries;
 
 /// <summary>
 /// Query representing the intention to search accounts by optional filters and pagination.
 /// </summary>
-public sealed class SearchAccountsQuery
+public sealed class SearchAccountsQuery : IRequest<IReadOnlyCollection<AccountDto>>
 {
     public string? Name { get; }
     public string? Username { get; }
