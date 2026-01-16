@@ -1,0 +1,101 @@
+# Defines the development environment for the application using Docker.
+# This configuration favors bind mounts for live code reload and local data persistence.
+
+services:
+  # Database initialization to ensure bind mount permissions are correct.
+  db-init:
+    image: busybox:latest
+    container_name: db_permission_fixer
+    user: root
+    volumes:
+      - ./volume_data/sqlserver:/data
+    command: sh -lc "mkdir -p /data && chown -R 10001:0 /data"
+
+  # Microsoft SQL Server
+  db:
+    container_name: db_sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${DB_PASSWORD}"
+    ports:
+      - "1434:1433"
+    volumes:
+      - ./volume_data/sqlserver:/var/opt/mssql
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "if command -v /opt/mssql-tools18/bin/sqlcmd >/dev/null 2>&1; then /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -C -Q 'SELECT 1'; else (echo > /dev/tcp/127.0.0.1/1433); fi",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Outbox directory initialization (used by DiskEmailSender).
+  outbox-init:
+    image: busybox:latest
+    container_name: outbox_permission_fixer
+    user: root
+    volumes:
+      - ./volume_data/outbox:/data/outbox
+    command: sh -lc "mkdir -p /data/outbox && chown -R 0:0 /data/outbox && chmod -R 0777 /data/outbox"
+
+  # .NET API (development mode)
+  backend:
+    container_name: backend_dotnet_api
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    working_dir: /src
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=MyAppDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      Jwt__SecretKey: "${JWT_SECRET}"
+      Jwt__Issuer: "api.todoapp.com"
+      Jwt__Audience: "todoapp_frontend"
+      Jwt__ExpirationMinutes: 60
+      EMAIL_OUTBOX_DIR: "/data/outbox"
+      EMAIL_DEFAULT_FROM: "no-reply@todoapp.local"
+      DP__APP_NAME: "MyApp.Backend"
+      DP__KEY_RING_PATH: "/keys"
+    volumes:
+      - ./:/src
+      - ./volume_data/outbox:/data/outbox
+      - dp-keys:/keys
+    command: dotnet watch --project src/Api/Api.csproj
+    depends_on:
+      db:
+        condition: service_healthy
+      outbox-init:
+        condition: service_completed_successfully
+
+  # Next.js frontend (development mode)
+  frontend:
+    container_name: frontend_next_app
+    image: node:20
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      NEXT_PUBLIC_API_BASE_URL: "/api"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npm install && npm run dev -- -p 3000"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  dp-keys: {}
