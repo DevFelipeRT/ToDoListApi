@@ -43,5 +43,13 @@ This repository includes a `docker-compose.yml` intended for running the API, da
 - Start with `docs/overview.md` and `docs/architecture.md` for a concise view of the system.
 - `docs/api.md` provides the endpoint reference for the HTTP API.
 
+### Documentation Links
+- [Overview](docs/overview.md)
+- [Architecture](docs/architecture.md)
+- [API Reference](docs/api.md)
+- [Local Setup](docs/local-setup.md)
+- [Common Tasks](docs/common-tasks.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
 ## Limitations
 - The Next.js frontend is not implemented and is not wired to the API; it likely does not function beyond the default template page.
