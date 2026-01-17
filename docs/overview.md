@@ -18,3 +18,7 @@ This project is designed as a portfolio artifact that showcases API design, doma
 
 ## Frontend Status
 - Not implemented. The Next.js app appears to be the default starter page and is not integrated with the API; it likely does not function beyond the template UI.
+
+## REST and HATEOAS Summary
+- The HTTP API is RESTful in its resource routes and HTTP verb usage for list and item operations.
+- HATEOAS is present for list responses via link collections and pagination links; item responses do not include HATEOAS links.

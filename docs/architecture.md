@@ -25,3 +25,7 @@ Commands and queries are modeled as distinct request types (via MediatR). This r
 - **Persistence:** EF Core with SQL Server, wired through `ApplicationDbContext`.
 - **Identity and auth:** ASP.NET Identity plus JWT bearer authentication configuration in the API. 
 - **Email outbox:** Disk-based email sender configured via environment variables. 
+
+## REST and HATEOAS Notes
+- The API follows RESTful patterns in its resource-oriented routes and standard HTTP verbs (GET/POST/PUT/DELETE) for lists and items.
+- HATEOAS is implemented for list responses via link collections (for example: `self`, `update-title`, `mark-complete`, `items`) and pagination links; item responses do not include HATEOAS links, so the approach is partial.
