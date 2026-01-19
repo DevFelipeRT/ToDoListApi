@@ -7,6 +7,9 @@ This repository is a portfolio-focused .NET 9 Web API that demonstrates layered 
 - Layered solution structure (Api → Application → Domain → Infrastructure).
 - DDD tactical patterns with aggregates and value objects in the Domain layer.
 - CQRS-style separation via explicit command/query types and MediatR registration.
+- Repository + Unit of Work for persistence boundaries and transactional commits.
+- Domain events dispatched through MediatR (publish/subscribe).
+- Policy-based domain rules via injectable uniqueness strategies.
 - Authentication and security configuration using JWT and ASP.NET Identity.
 - Docker-based development environment for local reproducibility.
 
@@ -25,6 +28,9 @@ This repository includes a `docker-compose.yml` intended for running the API, da
 - **Layered structure:** Api → Application → Domain → Infrastructure projects in the solution file.
 - **CQRS-style separation (partial):** explicit command and query types in the Application layer (via MediatR).
 - **DDD tactical patterns:** domain aggregates and value objects for accounts and lists/items.
+- **Repository + Unit of Work:** repositories per aggregate with a unit of work commit in Infrastructure.
+- **Domain events (publish/subscribe):** aggregates raise domain events; a dispatcher publishes them via MediatR.
+- **Policy-based strategies:** uniqueness rules implemented as injectable policies in the Application layer.
 
 ## Tech Stack and Tooling
 - **Backend:** ASP.NET Core (.NET 9), EF Core, ASP.NET Identity, JWT auth, Swagger/OpenAPI, MediatR.
