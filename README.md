@@ -1,4 +1,4 @@
-# ToDoList API (Portfolio)
+# To-Do List API (Portfolio)
 
 ## Overview
 This repository is a portfolio-focused .NET 9 Web API that demonstrates layered architecture, domain modeling, and API design around accounts, to-do lists, and to-do items.
